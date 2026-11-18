@@ -26,7 +26,7 @@ class DigitalProductDeliveryMail extends Mailable
         $this->transaction = $transaction->load(['items.product', 'seller']);
         $item = $this->transaction->items->first();
         $this->productName = $item?->product?->name ?? 'Produk Digital POS Market';
-        $this->downloadUrl = $item?->value['file_url'] ?? $item?->product?->value['file_url'] ?? null;
+        $this->downloadUrl = $this->transaction->getMagicLinkUrl();
         $this->customerName = $this->transaction->value['customer_name'] ?? 'Pelanggan Setia';
     }
 

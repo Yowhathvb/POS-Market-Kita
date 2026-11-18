@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\TransactionApiController;
 use App\Http\Controllers\Api\V1\WalletApiController;
 use App\Http\Controllers\Web\AuthController as WebAuthController;
 use App\Http\Controllers\Web\CheckoutController;
+use App\Http\Controllers\Web\MagicLinkController;
 use App\Http\Controllers\Web\ProductController;
 use App\Http\Controllers\Web\TransactionController as WebTransactionController;
 use App\Http\Controllers\Web\WalletController;
@@ -112,4 +113,15 @@ Route::prefix('v1/transactions')->middleware('api.key')->group(function () {
 
 // Midtrans Webhook Notification
 Route::post('v1/payments/midtrans-notification', [TransactionApiController::class, 'notification']);
+
+/*
+|--------------------------------------------------------------------------
+| Magic Link Digital Product Gateway: /{id_users}/produk/{magic_token}
+|--------------------------------------------------------------------------
+| Memverifikasi login Google pembeli via Firebase sebelum memberikan akses unduh produk.
+*/
+Route::get('/{id_users}/produk/{magic_token}', [MagicLinkController::class, 'show'])->name('magic.link.show');
+Route::post('/{id_users}/produk/{magic_token}/verify-google', [MagicLinkController::class, 'verifyGoogle'])->name('magic.link.verify');
+Route::get('/{id_users}/produk/{magic_token}/download', [MagicLinkController::class, 'download'])->name('magic.link.download');
+
 

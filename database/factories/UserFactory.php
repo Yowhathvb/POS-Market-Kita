@@ -26,6 +26,8 @@ class UserFactory extends Factory
     {
         return [
             'id_users' => \App\Services\AuthHelper::generateUserId(),
+            'id_toko' => \App\Services\AuthHelper::generateStoreId(),
+            'nama_toko' => fake()->company() . ' Store',
             'nama' => fake()->name(),
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),

@@ -12,6 +12,8 @@ Tabel `users` dirancang sesuai kebutuhan sistem dengan skema kolom berikut:
 | :--- | :--- | :--- |
 | `id` | `BIGINT` (Auto Increment) | Primary Key unik tiap baris data. |
 | `id_users` | `VARCHAR(50)` (Unique) | ID khusus pengguna (otomatis digenerate sistem: `POS-` + huruf & angka acak >5 karakter, misal `POS-K8A9B2C4`). |
+| `id_toko` | `VARCHAR(50)` (Unique) | ID khusus toko penjual (otomatis digenerate sistem: `POSM-` + huruf & angka acak >5 karakter, misal `POSM-X8K1N9Q4`). |
+| `nama_toko` | `VARCHAR(150)` (Nullable) | Nama toko atau brand resmi milik penjual (misal: `Karya Digital Store`). |
 | `nama` | `VARCHAR(255)` | Nama lengkap pengguna. |
 | `username` | `VARCHAR(50)` (Unique) | Username unik untuk login. |
 | `email` | `VARCHAR(255)` (Unique) | Alamat email resmi pengguna. |
@@ -130,11 +132,13 @@ Endpoint dapat diakses baik melalui `/v1/auth/...` maupun `/api/v1/auth/...`.
 | Field | Tipe | Wajib? | Keterangan |
 | :--- | :--- | :--- | :--- |
 | `nama` | String | Ya | Nama lengkap pengguna (maks. 255 karakter). |
+| `nama_toko` | String | Tidak | Nama toko/brand penjualan (misal: `Digital Karya Store`). Default: disamakan dengan `nama`. |
+| `id_toko` | String | Tidak | ID toko kustom diawali `POSM-` (misal `POSM-X8K1N9Q4`). Jika kosong, otomatis dibuatkan oleh sistem. |
 | `username` | String | Ya | Username unik (huruf, angka, dash, min 3 karakter). |
 | `email` | String | Ya | Alamat email unik dan valid. |
 | `password` | String | Ya | Password (minimal 6 karakter). |
 | `password_confirmation` | String | Ya | Konfirmasi password (harus sama dengan `password`). |
-| `id_users` | String | Tidak | ID pengguna kustom. Jika kosong, digenerate otomatis: `USR-XXXXXXXX`. |
+| `id_users` | String | Tidak | ID pengguna kustom. Jika kosong, digenerate otomatis: `POS-XXXXXXXX`. |
 | `role` | String | Tidak | Default: `user`. Pilihan: `user`, `admin`, `manager`, `cashier`. |
 | `value` | Object/JSON | Tidak | Data profil tambahan berformat JSON. |
 
@@ -142,6 +146,7 @@ Endpoint dapat diakses baik melalui `/v1/auth/...` maupun `/api/v1/auth/...`.
 ```json
 {
   "nama": "Budi Santoso",
+  "nama_toko": "Digital Kreatif Nusantara",
   "username": "budisantoso",
   "email": "budi@example.com",
   "password": "password123",
@@ -149,10 +154,7 @@ Endpoint dapat diakses baik melalui `/v1/auth/...` maupun `/api/v1/auth/...`.
   "role": "user",
   "value": {
     "phone": "081234567890",
-    "alamat": "Jl. Merdeka No. 12, Surabaya",
-    "preferensi": {
-      "theme": "dark"
-    }
+    "alamat": "Jl. Merdeka No. 12, Surabaya"
   }
 }
 ```
@@ -166,7 +168,9 @@ Endpoint dapat diakses baik melalui `/v1/auth/...` maupun `/api/v1/auth/...`.
   "data": {
     "user": {
       "id": 3,
-      "id_users": "USR-K8A9B2C1",
+      "id_users": "POS-K8A9B2C1",
+      "id_toko": "POSM-M9A2X7Q1",
+      "nama_toko": "Digital Kreatif Nusantara",
       "nama": "Budi Santoso",
       "username": "budisantoso",
       "email": "budi@example.com",
@@ -174,10 +178,7 @@ Endpoint dapat diakses baik melalui `/v1/auth/...` maupun `/api/v1/auth/...`.
       "key": null,
       "value": {
         "phone": "081234567890",
-        "alamat": "Jl. Merdeka No. 12, Surabaya",
-        "preferensi": {
-          "theme": "dark"
-        }
+        "alamat": "Jl. Merdeka No. 12, Surabaya"
       },
       "created_at": "2026-11-17T11:00:00+07:00",
       "updated_at": "2026-11-17T11:00:00+07:00"
@@ -1534,6 +1535,88 @@ Tersedia antarmuka web modern, responsif, dan elegan:
    - **Card Kolom `value`**: Menampilkan JSON yang tersimpan dengan format rapi (*pretty print*).
    - **Tabel Daftar Pengguna**: Menampilkan tabel pengguna yang tersimpan di database.
    - Quick copy snippet perintah cURL untuk pengujian API.
+
+---
+
+## 11. Sistem Magic Link Gateway Produk Digital & Firebase Google Authentication
+
+### 11.1. Konsep Magic Link Gateway
+Ketika pembeli melakukan checkout produk digital dan menyelesaikan pembayaran QRIS via Midtrans, pembeli tidak langsung diarahkan ke URL raw file asset, melainkan diberikan **Magic Link Gateway** unik pada domain kita:
+```text
+http://domain/{id_users}/produk/{magic_token}
+Contoh: http://localhost:8000/POS-K8A9B2C1/produk/m9q8k2v7x4p1n5w8z3b6c0e2a4f7g9h1
+```
+
+### 11.2. Alur Keamanan Verifikasi Email Google
+1. Pembeli membuka tautan Magic Link di browser.
+2. Gateway memeriksa status pembayaran invoice:
+   - Jika belum lunas (`unpaid`), gateway menampilkan peringatan dan mengarahkan ke halaman pembayaran QRIS.
+   - Jika sudah lunas (`paid`), gateway meminta pembeli untuk **Login dengan Akun Google**.
+3. Pembeli menekan tombol **Login dengan Akun Google** yang terhubung ke Firebase Authentication Web SDK.
+4. Jendela otentikasi Google muncul dan pembeli memilih akun Google miliknya.
+5. Frontend mengirimkan email Google hasil login ke endpoint:
+   `POST /{id_users}/produk/{magic_token}/verify-google`
+6. Backend membandingkan email Google dengan `buyer_email` yang dicatat saat checkout:
+   - **Jika Cocok (Match):**
+     - Sub ID Google (`buyer_google_sub`) dicatat pada transaksi.
+     - Sesi verifikasi diaktifkan (`session(['magic_auth_{trx_id}' => true])`).
+     - Tombol unduh file produk digital aktif dan pembeli dapat langsung mengunduh aset.
+   - **Jika Tidak Cocok (Mismatch):**
+     - Server menolak akses dengan status `403 Forbidden` dan pesan eksplisit:
+       *"Akses Ditolak: Email Google yang Anda gunakan (user@gmail.com) tidak cocok dengan email pembeli saat checkout (buyer@gmail.com)."*
+
+---
+
+### 11.3. Panduan Langkah demi Langkah Setting Firebase Google Login
+
+Untuk mengaktifkan autentikasi Google menggunakan Firebase pada project Anda:
+
+1. **Buka Firebase Console:**
+   Kunjungi [https://console.firebase.google.com](https://console.firebase.google.com) dan buka project Firebase yang telah Anda buat.
+
+2. **Aktifkan Google Sign-in Provider:**
+   - Di bilah navigasi kiri, pilih **Build** &rarr; **Authentication**.
+   - Klik tab **Sign-in method**.
+   - Klik opsi **Google**.
+   - Geser toggle menjadi **Enable**.
+   - Pilih *Project support email* (alamat email Anda).
+   - Klik **Save**.
+
+3. **Tambahkan Authorized Domains:**
+   - Masih di menu **Authentication**, klik tab **Settings**.
+   - Pilih **Authorized domains**.
+   - Pastikan domain pengembangan terdaftar:
+     - `localhost`
+     - `127.0.0.1`
+     - Serta domain website Anda jika sudah deploy ke hosting/VPS.
+
+4. **Daftarkan Web App & Dapatkan Kredensial:**
+   - Klik ikon gerigi (Project Settings) di pojok kiri atas &rarr; pilih **General**.
+   - Scroll ke bawah ke bagian **Your apps** &rarr; klik ikon Web (**`</>`**).
+   - Masukkan App nickname, contoh: `POS Market Kita Web`.
+   - Klik **Register app**.
+   - Firebase akan menampilkan object `firebaseConfig` seperti contoh berikut:
+     ```javascript
+     const firebaseConfig = {
+       apiKey: "AIzaSyD-...",
+       authDomain: "pos-market-kita.firebaseapp.com",
+       projectId: "pos-market-kita",
+       storageBucket: "pos-market-kita.firebasestorage.app",
+       messagingSenderId: "1234567890",
+       appId: "1:1234567890:web:abcdef..."
+     };
+     ```
+
+5. **Masukkan Konfigurasi ke berkas `.env` Laravel:**
+   Buka berkas `.env` pada project `pos-market` dan isi nilainya sesuai object dari Firebase Console:
+   ```env
+   FIREBASE_API_KEY="AIzaSyD-..."
+   FIREBASE_AUTH_DOMAIN="pos-market-kita.firebaseapp.com"
+   FIREBASE_PROJECT_ID="pos-market-kita"
+   FIREBASE_STORAGE_BUCKET="pos-market-kita.firebasestorage.app"
+   FIREBASE_MESSAGING_SENDER_ID="1234567890"
+   FIREBASE_APP_ID="1:1234567890:web:abcdef..."
+   ```
 
 ---
 

@@ -38,7 +38,7 @@ class TransactionApiController extends Controller
         }
 
         $query = Transaction::where('seller_user_id', $user->id)
-            ->with(['items.product', 'latestPayment']);
+            ->with(['items.product', 'latestPayment', 'seller']);
 
         // Filter status: paid, unpaid, pending, expired, cancelled, all
         if ($request->filled('status') && $request->input('status') !== 'all') {
@@ -407,7 +407,7 @@ class TransactionApiController extends Controller
         $item = $transaction->items->first();
         $isPaid = $transaction->status === 'paid';
         $downloadUrl = $isPaid 
-            ? ($item?->value['file_url'] ?? $item?->product?->value['file_url'] ?? null)
+            ? $transaction->getMagicLinkUrl()
             : null;
 
         return response()->json([
@@ -606,13 +606,15 @@ class TransactionApiController extends Controller
             }
 
             $firstItem = $lockedTrx->items->first();
+            $magicLinkUrl = $lockedTrx->getMagicLinkUrl();
             $emailData = [
                 'seller_user_id' => $lockedTrx->seller_user_id,
                 'transaction_id' => $lockedTrx->id,
                 'buyer_email' => $lockedTrx->buyer_email,
                 'invoice_number' => $lockedTrx->invoice_number,
                 'product_name' => $firstItem?->product?->name ?? ($firstItem?->value['product_name'] ?? 'Produk Digital'),
-                'download_url' => $firstItem?->value['file_url'] ?? $firstItem?->product?->value['file_url'] ?? null,
+                'download_url' => $magicLinkUrl,
+                'raw_file_url' => $firstItem?->value['file_url'] ?? $firstItem?->product?->value['file_url'] ?? null,
                 'gross_amount' => (float) $lockedTrx->total_amount,
             ];
         });
@@ -662,13 +664,15 @@ class TransactionApiController extends Controller
             'is_paid' => $isPaid,
             'total_amount' => (float) $trx->total_amount,
             'formatted_amount' => 'Rp ' . number_format($trx->total_amount, 0, ',', '.'),
+            'magic_token' => $trx->magic_token,
+            'magic_link_url' => $trx->getMagicLinkUrl(),
             'buyer' => [
                 'email' => $trx->buyer_email,
                 'name' => $trx->value['customer_name'] ?? null,
                 'phone' => $trx->value['customer_phone'] ?? null,
                 'notes' => $trx->value['notes'] ?? null,
             ],
-            'items' => $trx->items->map(function ($item) use ($isPaid) {
+            'items' => $trx->items->map(function ($item) use ($isPaid, $trx) {
                 return [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product?->name ?? ($item->value['product_name'] ?? '-'),
@@ -676,7 +680,8 @@ class TransactionApiController extends Controller
                     'qty' => $item->qty,
                     'unit_price' => (float) $item->unit_price,
                     'subtotal' => (float) $item->subtotal,
-                    'download_url' => $isPaid ? ($item->value['file_url'] ?? $item->product?->value['file_url'] ?? null) : null,
+                    'download_url' => $isPaid ? $trx->getMagicLinkUrl() : null,
+                    'raw_file_url' => $isPaid ? ($item->value['file_url'] ?? $item->product?->value['file_url'] ?? null) : null,
                     'gambar' => $item->value['gambar'] ?? $item->product?->value['gambar'] ?? null,
                 ];
             }),

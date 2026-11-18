@@ -81,6 +81,33 @@ class AuthHelper
     }
 
     /**
+     * Generate a unique id_toko string with prefix POSM- and random uppercase letters + numbers (length > 5).
+     * Example: POSM-K8A9B2C4 (8 characters after POSM-).
+     */
+    public static function generateStoreId(int $randomLength = 8): string
+    {
+        $letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $digits = '23456789';
+        $combined = $letters . $digits;
+
+        do {
+            $chars = [
+                $letters[random_int(0, strlen($letters) - 1)],
+                $digits[random_int(0, strlen($digits) - 1)],
+            ];
+
+            for ($i = 2; $i < $randomLength; $i++) {
+                $chars[] = $combined[random_int(0, strlen($combined) - 1)];
+            }
+
+            shuffle($chars);
+            $id = 'POSM-' . implode('', $chars);
+        } while (User::where('id_toko', $id)->exists());
+
+        return $id;
+    }
+
+    /**
      * Parse and normalize the JSON value from array or string.
      */
     public static function parseJsonValue(mixed $value): ?array

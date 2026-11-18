@@ -94,13 +94,16 @@ class AuthWebTest extends TestCase
         $response->assertStatus(200);
 
         // Verify sidebar use-case menu items are present
-        $response->assertSee('Data Produk');
-        $response->assertSee('Mengelola Produk');
-        $response->assertSee('Setting Web Penjual');
-        $response->assertSee('Checkout');
-        $response->assertSee('Payment (Pembayaran)');
-        $response->assertSee('Mengelola Saldo (Wallet)');
-        $response->assertSee('Dokumentasi API');
+        $response->assertSeeText('Data Produk');
+        $response->assertSeeText('Mengelola Produk');
+        $response->assertSeeText('Setting Web Penjual');
+        $response->assertSeeText('Checkout & Transaksi');
+        $response->assertSeeText('Mengelola Saldo (Wallet)');
+        $response->assertSeeText('Dokumentasi API');
+
+        // Verify removed menu items are NOT in sidebar
+        $response->assertDontSee('Payment (Pembayaran)');
+        $response->assertDontSee('Magic Link Produk');
 
         // Verify Landing Page is NOT included in the sidebar menu
         $response->assertDontSee('Melihat Landing Page');
@@ -108,14 +111,24 @@ class AuthWebTest extends TestCase
 
     public function test_docs_page_is_accessible(): void
     {
-        $response = $this->get('/docs');
-        $response->assertStatus(200);
-        $response->assertSee('Dokumentasi Lengkap API POS Market Kita');
-        $response->assertSee('/v1/auth/register');
-        $response->assertSee('/v1/auth/login');
-        $response->assertSee('/v1/products');
-        $response->assertSee('Khusus Produk Digital');
-        $response->assertSee('203 Non-Authoritative Information');
+        // 1. Guest (unauthenticated) can access public docs without login
+        $guestResponse = $this->get('/docs');
+        $guestResponse->assertStatus(200);
+        $guestResponse->assertSee('Dokumentasi Lengkap API POS Market Kita');
+        $guestResponse->assertSee('Public Docs');
+        $guestResponse->assertSee('Daftar Isi');
+        $guestResponse->assertSee('/v1/auth/register');
+        $guestResponse->assertSee('/v1/auth/login');
+        $guestResponse->assertSee('/v1/products');
+        $guestResponse->assertSee('Khusus Produk Digital');
+        $guestResponse->assertSee('203 Non-Authoritative Information');
+
+        // 2. Authenticated user can also access public docs
+        $user = User::factory()->create();
+        $authResponse = $this->actingAs($user)->get('/docs');
+        $authResponse->assertStatus(200);
+        $authResponse->assertSee('Dashboard Penjual');
+        $authResponse->assertSee('Dokumentasi Lengkap API POS Market Kita');
     }
 
     public function test_web_logout(): void

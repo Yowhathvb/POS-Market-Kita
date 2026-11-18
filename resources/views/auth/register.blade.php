@@ -52,6 +52,38 @@
                 </div>
             </div>
 
+            <!-- Grid 2: Nama Toko & ID Toko -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="nama_toko" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Nama Toko / Brand
+                    </label>
+                    <input 
+                        type="text" 
+                        id="nama_toko" 
+                        name="nama_toko" 
+                        value="{{ old('nama_toko') }}" 
+                        placeholder="Contoh: Digital Karya Store" 
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm transition"
+                    >
+                    <p class="text-[10px] text-slate-400 mt-1">Kosongkan jika ingin disamakan dengan Nama Lengkap.</p>
+                </div>
+                <div>
+                    <label for="id_toko" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                        ID Toko <span class="text-xs text-slate-500 font-normal">(Opsional)</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="id_toko" 
+                        name="id_toko" 
+                        value="{{ old('id_toko') }}" 
+                        placeholder="POSM-XXXXXXXX (Auto jika kosong)" 
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/80 border border-slate-700/80 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm transition uppercase code-font"
+                    >
+                    <p class="text-[10px] text-slate-400 mt-1">Format: <code class="text-cyan-300 code-font">POSM-XXXXXXXX</code></p>
+                </div>
+            </div>
+
             <!-- Email Field -->
             <div>
                 <label for="email" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
@@ -76,7 +108,8 @@
                 <div class="space-y-1">
                     <p class="font-semibold text-white">Ketentuan Akun Baru:</p>
                     <p class="text-slate-300 leading-relaxed">
-                        • <strong>ID Users</strong> akan dibuat otomatis oleh sistem dengan format <code class="code-font text-cyan-300 font-bold bg-slate-900/80 px-1.5 py-0.5 rounded">POS-XXXXXXXX</code> (huruf & angka acak).<br>
+                        • <strong>ID Users</strong> akan dibuat otomatis dengan format <code class="code-font text-cyan-300 font-bold bg-slate-900/80 px-1.5 py-0.5 rounded">POS-XXXXXXXX</code>.<br>
+                        • <strong>ID Toko</strong> akan dibuat otomatis dengan format <code class="code-font text-amber-300 font-bold bg-slate-900/80 px-1.5 py-0.5 rounded">POSM-XXXXXXXX</code>.<br>
                         • <strong>Role</strong> otomatis ditetapkan sebagai <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">user</span> (Penjual).
                     </p>
                 </div>

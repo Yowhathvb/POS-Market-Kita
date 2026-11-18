@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -91,6 +92,8 @@ class AuthController extends Controller
     {
         $request->validate([
             'nama' => ['required', 'string', 'max:255'],
+            'nama_toko' => ['nullable', 'string', 'max:150'],
+            'id_toko' => ['nullable', 'string', 'max:50', 'regex:/^POSM-[A-Z0-9]{4,}$/', 'unique:users,id_toko'],
             'username' => ['required', 'string', 'alpha_dash', 'min:3', 'max:50', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
@@ -99,6 +102,8 @@ class AuthController extends Controller
             'value_json' => ['nullable', 'string'],
         ], [
             'nama.required' => 'Nama lengkap wajib diisi.',
+            'id_toko.regex' => 'Format ID Toko harus diawali POSM- diikuti huruf kapital/angka.',
+            'id_toko.unique' => 'ID Toko ini sudah digunakan oleh toko lain.',
             'username.required' => 'Username wajib diisi.',
             'username.unique' => 'Username sudah terdaftar, silakan pilih yang lain.',
             'email.required' => 'Email wajib diisi.',
@@ -131,8 +136,19 @@ class AuthController extends Controller
         // Generate automatic ID Users with format POS-XXXXXXXX (>5 chars)
         $idUsers = AuthHelper::generateUserId();
 
-        User::create([
+        // Generate or use ID Toko with format POSM-XXXXXXXX (>5 chars)
+        $idToko = $request->filled('id_toko')
+            ? strtoupper(trim($request->input('id_toko')))
+            : AuthHelper::generateStoreId();
+
+        $namaToko = $request->filled('nama_toko')
+            ? trim($request->input('nama_toko'))
+            : 'Toko ' . trim($request->input('nama'));
+
+        $user = User::create([
             'id_users' => $idUsers,
+            'id_toko' => $idToko,
+            'nama_toko' => $namaToko,
             'nama' => $request->input('nama'),
             'username' => strtolower(trim($request->input('username'))),
             'email' => strtolower(trim($request->input('email'))),
@@ -140,6 +156,18 @@ class AuthController extends Controller
             'role' => 'user', // Default role is always user
             'key' => null, // Generated only upon login
             'value' => empty($jsonValue) ? null : $jsonValue,
+        ]);
+
+        // Auto create initial store website
+        $user->storeWebsites()->create([
+            'uuid' => (string) Str::uuid(),
+            'store_name' => $namaToko,
+            'slug' => Str::slug($namaToko) . '-' . strtolower(substr($idToko, 5)),
+            'is_published' => true,
+            'value' => [
+                'id_toko' => $idToko,
+                'theme' => 'default',
+            ],
         ]);
 
         return redirect()->route('login')->with('status', [

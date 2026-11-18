@@ -17,6 +17,7 @@ class Transaction extends Model
     protected $fillable = [
         'uuid',
         'invoice_number',
+        'magic_token',
         'store_website_id',
         'seller_user_id',
         'buyer_email',
@@ -45,7 +46,23 @@ class Transaction extends Model
             if (empty($trx->invoice_number)) {
                 $trx->invoice_number = static::generateNextInvoiceNumber();
             }
+            if (empty($trx->magic_token)) {
+                $trx->magic_token = Str::random(32);
+            }
         });
+    }
+
+    /**
+     * Dapatkan URL Magic Link gateway untuk produk digital transaksi ini.
+     * Format: {domain}/{id_users}/produk/{magic_token}
+     */
+    public function getMagicLinkUrl(): string
+    {
+        $idUsers = $this->relationLoaded('seller')
+            ? ($this->seller?->id_users ?? 'POS-DEFAULT')
+            : (User::where('id', $this->seller_user_id)->value('id_users') ?? 'POS-DEFAULT');
+
+        return url("/{$idUsers}/produk/{$this->magic_token}");
     }
 
     /**

@@ -43,28 +43,22 @@
                 </div>
             </div>
 
-            <!-- Download Button -->
+            <!-- Magic Link Download Button -->
             @php
-                $downloadUrl = $item?->value['file_url'] ?? $item?->product?->value['file_url'] ?? null;
+                $magicLinkUrl = $transaction->getMagicLinkUrl();
             @endphp
 
-            @if (!empty($downloadUrl))
-                <div class="pt-2 space-y-3">
-                    <a href="{{ $downloadUrl }}" target="_blank" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-brand-600 hover:from-emerald-500 hover:to-brand-500 text-white font-bold text-sm shadow-xl shadow-emerald-500/30 transition flex items-center justify-center space-x-2">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        <span>Download File Produk Digital Sekarang</span>
-                    </a>
-                    <p class="text-[11px] text-slate-400">
-                        File asset digital dan link unduhan juga telah otomatis dikirimkan ke email Anda (<strong>{{ $transaction->buyer_email }}</strong>).
-                    </p>
-                </div>
-            @else
-                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-                    Link produk sedang disiapkan oleh penjual. Anda juga dapat menghubungi penjual melalui email mereka.
-                </div>
-            @endif
+            <div class="pt-2 space-y-3">
+                <a href="{{ $magicLinkUrl }}" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-brand-600 hover:from-emerald-500 hover:to-brand-500 text-white font-bold text-sm shadow-xl shadow-emerald-500/30 transition flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span>Buka Magic Link Produk (Login Google)</span>
+                </a>
+                <p class="text-[11px] text-slate-400">
+                    Sistem Magic Link Terproteksi: Untuk mengunduh file, Anda wajib login dengan akun Google yang beralamat <strong>{{ $transaction->buyer_email }}</strong>.
+                </p>
+            </div>
 
             <div class="pt-4 border-t border-slate-800 flex justify-center space-x-3">
                 <a href="{{ route('products.index') }}" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition">

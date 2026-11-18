@@ -103,7 +103,7 @@
             </div>
         </div>
 
-        <!-- Group 4: Transaksi & Payment (UC 10, 14, 15) -->
+        <!-- Group 4: Transaksi & Order (UC 14) -->
         <div>
             <div class="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Transaksi & Order</div>
             <div class="space-y-1">
@@ -113,20 +113,6 @@
                     </svg>
                     <span>Checkout & Transaksi</span>
                     <span class="ml-auto text-[10px] {{ request()->routeIs('transactions.*') ? 'text-cyan-200' : 'text-slate-400' }} code-font">UC-14</span>
-                </a>
-                <a href="{{ route('dashboard') }}#payment" class="flex items-center px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/70 transition group">
-                    <svg class="w-4 h-4 mr-3 text-cyan-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <span>Payment (Pembayaran)</span>
-                    <span class="ml-auto text-[10px] text-slate-400 code-font">UC-10</span>
-                </a>
-                <a href="{{ route('dashboard') }}#magic-link" class="flex items-center px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/70 transition group">
-                    <svg class="w-4 h-4 mr-3 text-cyan-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                    <span>Magic Link Produk</span>
-                    <span class="ml-auto text-[10px] text-slate-400 code-font">UC-15</span>
                 </a>
             </div>
         </div>
@@ -163,13 +149,16 @@
                     <span>Konfigurasi & Integrasi API</span>
                     <span class="ml-auto text-[10px] text-slate-400 code-font">UC-11</span>
                 </a>
-                <!-- Sesuai permintaan user: Menu Docs -->
-                <a href="{{ route('docs') }}" class="flex items-center px-3 py-2 rounded-xl font-medium {{ request()->routeIs('docs') ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30 font-semibold' : 'text-slate-300 hover:text-white hover:bg-slate-800/70' }} transition group">
-                    <svg class="w-4 h-4 mr-3 {{ request()->routeIs('docs') ? 'text-white' : 'text-emerald-400 group-hover:text-white' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <!-- Sesuai permintaan user: Menu Docs (Halaman Terpisah Publik) -->
+                <a href="{{ route('docs') }}" target="_blank" class="flex items-center px-3 py-2 rounded-xl font-medium text-slate-300 hover:text-white hover:bg-slate-800/70 transition group">
+                    <svg class="w-4 h-4 mr-3 text-emerald-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
                     <span>Dokumentasi API</span>
-                    <span class="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">DOCS</span>
+                    <span class="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center space-x-1">
+                        <span>DOCS</span>
+                        <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    </span>
                 </a>
             </div>
         </div>

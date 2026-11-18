@@ -1,7 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.docs')
 
-@section('title', 'Dokumentasi API POS Market Kita')
-@section('header_title', 'Dokumentasi API (/docs)')
+@section('title', 'Dokumentasi Lengkap API POS Market Kita')
 
 @section('content')
 <div class="space-y-8">
@@ -11,21 +10,29 @@
         <div>
             <div class="flex items-center space-x-2.5 mb-2">
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                    Menu Docs
+                    Menu Docs &bull; Terbuka untuk Umum
                 </span>
                 <span class="text-xs text-slate-400">Versi API: <strong class="code-font text-white">v1 (/v1/auth)</strong></span>
             </div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 Dokumentasi Lengkap API POS Market Kita
             </h1>
-            <p class="text-sm text-slate-400 mt-1">
-                Panduan integrasi autentikasi, API Key, mekanisme pembentukan kolom key, upload data JSON ke kolom value, dan katalog respon HTTP status code.
+            <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+                Panduan integrasi autentikasi, API Key, registrasi toko (POSM-), mekanisme kolom key, upload data JSON, katalog produk digital, wallet, checkout QRIS Midtrans, Magic Link Firebase, dan respon status code.
             </p>
         </div>
 
-        <div class="flex items-center space-x-2 bg-slate-950/80 px-4 py-2.5 rounded-xl border border-slate-800">
-            <span class="text-xs text-slate-400">API Key (.env):</span>
-            <code class="code-font text-xs text-emerald-400 font-bold select-all">{{ $apiKey }}</code>
+        <div class="flex flex-col items-end space-y-2 flex-shrink-0">
+            <div class="flex items-center space-x-2 bg-slate-950/90 px-4 py-2 rounded-xl border border-slate-800">
+                <span class="text-xs text-slate-400">Public API Key:</span>
+                <code id="globalApiKey" class="code-font text-xs text-emerald-400 font-bold select-all">{{ $apiKey }}</code>
+                <button type="button" onclick="navigator.clipboard.writeText('{{ $apiKey }}'); alert('API Key disalin ke clipboard!');" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="Salin API Key">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                </button>
+            </div>
+            <span class="text-[10px] text-slate-500">Gunakan header <code class="text-emerald-400 code-font">X-API-KEY</code></span>
         </div>
     </div>
 
@@ -38,6 +45,7 @@
         <a href="#products-api" class="px-3 py-1.5 rounded-lg bg-slate-800 text-emerald-300 hover:bg-slate-700 border border-emerald-500/30 transition">Produk Digital API (/v1/products)</a>
         <a href="#wallet-api" class="px-3 py-1.5 rounded-lg bg-slate-800 text-amber-300 hover:bg-slate-700 border border-amber-500/30 transition">Wallet & Saldo Penjual (/v1/wallet)</a>
         <a href="#transactions-api" class="px-3 py-1.5 rounded-lg bg-slate-800 text-sky-300 hover:bg-slate-700 border border-sky-500/30 transition">Checkout & QRIS Midtrans (/v1/transactions)</a>
+        <a href="#magic-link" class="px-3 py-1.5 rounded-lg bg-slate-800 text-cyan-300 hover:bg-slate-700 border border-cyan-500/30 transition">Magic Link Gateway & Firebase Google</a>
         <a href="#upload-value" class="px-3 py-1.5 rounded-lg bg-slate-800 text-cyan-300 hover:bg-slate-700 border border-cyan-500/30 transition">Upload ke Kolom 'value' (JSON)</a>
         <a href="#status-codes" class="px-3 py-1.5 rounded-lg bg-slate-800 text-purple-300 hover:bg-slate-700 border border-purple-500/30 transition">Semua Respon HTTP (200, 201, 203, ...)</a>
     </div>
@@ -1006,12 +1014,69 @@
         </div>
     </div>
 
-    <!-- Section 7: Katalog Semua Respon HTTP Status Code -->
+    <!-- Section 7: Magic Link Gateway & Firebase Google Authentication -->
+    <div id="magic-link" class="glass-card rounded-2xl p-6 sm:p-8 shadow-xl space-y-6 border border-cyan-500/20">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div>
+                <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                    <span>7. Magic Link Gateway Produk Digital & Firebase Google Auth</span>
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    Proteksi link download produk digital: <code class="code-font text-cyan-300">{domain}/{id_users}/produk/{magic_token}</code> &bull; Verifikasi email Google pembeli via Firebase SDK.
+                </p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                    Firebase Auth
+                </span>
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                    Email Match Guard
+                </span>
+            </div>
+        </div>
+
+        <div class="p-4 bg-cyan-950/40 border border-cyan-500/20 rounded-xl text-xs text-cyan-200 leading-relaxed space-y-2">
+            <strong>Cara Kerja Konsep Magic Link:</strong>
+            <ol class="list-decimal list-inside space-y-1 text-slate-300 pl-1 text-[11px]">
+                <li>Setelah transaksi lunas, sistem tidak mengekspos link file mentah secara publik, melainkan menghasilkan tautan khusus: <code class="code-font text-cyan-300">{{ url('/{id_users}/produk/{acak}') }}</code>.</li>
+                <li>Saat pembeli membuka tautan, halaman gateway meminta pembeli untuk <strong>Login dengan Akun Google</strong>.</li>
+                <li>Frontend mengautentikasi pengguna menggunakan <strong>Firebase Google Auth</strong> dan mengirimkan email ke backend.</li>
+                <li>Backend mencocokkan email Google dengan email pembeli saat checkout (<code class="code-font text-emerald-300">buyer_email</code>).</li>
+                <li>Jika email cocok, akses unduh dibuka. Jika tidak cocok, sistem menolak dengan pesan error <code class="code-font text-rose-400">403 Forbidden</code>.</li>
+            </ol>
+        </div>
+
+        <!-- Firebase Setup Guide -->
+        <div class="p-5 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+            <h3 class="text-sm font-bold text-amber-300 flex items-center space-x-2">
+                <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Panduan Setting Firebase Google Login di Firebase Console</span>
+            </h3>
+            <ol class="list-decimal list-inside space-y-1.5 text-xs text-slate-300 pl-1">
+                <li>Buka <strong>Firebase Console</strong> (<a href="https://console.firebase.google.com" target="_blank" class="text-brand-400 hover:underline">console.firebase.google.com</a>) &rarr; pilih project Anda.</li>
+                <li>Masuk ke menu <strong>Build</strong> &rarr; <strong>Authentication</strong> &rarr; tab <strong>Sign-in method</strong> &rarr; aktifkan (Enable) penyedia <strong>Google</strong>.</li>
+                <li>Pada tab <strong>Settings</strong> &rarr; <strong>Authorized domains</strong>, pastikan domain <code class="code-font text-cyan-300">localhost</code> dan <code class="code-font text-cyan-300">127.0.0.1</code> sudah terdaftar.</li>
+                <li>Buka <strong>Project Settings (Ikon Gerigi)</strong> &rarr; <strong>General</strong> &rarr; scroll ke <strong>Your apps</strong> &rarr; buat aplikasi Web (ikon <strong>&lt;/&gt;</strong>).</li>
+                <li>Salin nilai konfigurasi Web SDK ke berkas <code class="code-font text-amber-300">.env</code> Anda:</li>
+            </ol>
+            <pre class="p-3 bg-slate-900 rounded-xl code-font text-[11px] text-slate-300 overflow-x-auto">FIREBASE_API_KEY="AIzaSyD-..."
+FIREBASE_AUTH_DOMAIN="pos-market-kita.firebaseapp.com"
+FIREBASE_PROJECT_ID="pos-market-kita"
+FIREBASE_STORAGE_BUCKET="pos-market-kita.firebasestorage.app"
+FIREBASE_MESSAGING_SENDER_ID="1234567890"
+FIREBASE_APP_ID="1:1234567890:web:abcdef..."</pre>
+        </div>
+    </div>
+
+    <!-- Section 8: Katalog Semua Respon HTTP Status Code -->
     <div id="status-codes" class="glass-card rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
         <div>
             <h2 class="text-lg font-bold text-white flex items-center space-x-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
-                <span>7. Katalog Lengkap Respon Status Code (200, 201, 203, 400, 401, ...)</span>
+                <span>8. Katalog Lengkap Respon Status Code (200, 201, 203, 400, 401, ...)</span>
             </h2>
             <p class="text-xs text-slate-400 mt-1">
                 Anda dapat menguji respon status kode apa pun secara langsung lewat endpoint simulasi: <code class="code-font text-purple-300">GET /v1/auth/status-demo/{kode}</code>
