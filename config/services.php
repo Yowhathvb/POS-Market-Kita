@@ -40,6 +40,7 @@ return [
         'public_key' => env('IMAGEKIT_PUBLIC_KEY'),
         'private_key' => env('IMAGEKIT_PRIVATE_KEY'),
         'folder' => env('IMAGEKIT_FOLDER', 'pos'),
+        'ssl_verify' => env('IMAGEKIT_SSL_VERIFY', true),
     ],
 
     'midtrans' => [

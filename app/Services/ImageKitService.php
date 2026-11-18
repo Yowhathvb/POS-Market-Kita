@@ -48,26 +48,46 @@ class ImageKitService
                 if (!str_ends_with(strtolower($name), '.' . strtolower($ext))) {
                     $name .= '.' . $ext;
                 }
+            }
 
-                $response = Http::timeout(25)
-                    ->withBasicAuth($privateKey, '')
-                    ->attach('file', file_get_contents($file->getRealPath()), $name)
-                    ->post('https://upload.imagekit.io/api/v1/files/upload', [
-                        'fileName' => $name,
-                        'folder' => '/' . trim($folder, '/'),
-                        'useUniqueFileName' => 'true',
-                    ]);
-            } else {
+            $executeRequest = function (bool $verifySsl) use ($privateKey, $file, $name, $folder) {
+                $http = Http::timeout(25)->withBasicAuth($privateKey, '');
+                if (!$verifySsl) {
+                    $http = $http->withoutVerifying();
+                }
+
+                if ($file instanceof UploadedFile) {
+                    return $http->attach('file', file_get_contents($file->getRealPath()), $name)
+                        ->post('https://upload.imagekit.io/api/v1/files/upload', [
+                            'fileName' => $name,
+                            'folder' => '/' . trim($folder, '/'),
+                            'useUniqueFileName' => 'true',
+                        ]);
+                }
+
                 // Berupa URL gambar atau base64
-                $response = Http::timeout(25)
-                    ->withBasicAuth($privateKey, '')
-                    ->asMultipart()
-                    ->post('https://upload.imagekit.io/api/v1/files/upload', [
-                        'file' => $file,
-                        'fileName' => $name,
-                        'folder' => '/' . trim($folder, '/'),
-                        'useUniqueFileName' => 'true',
-                    ]);
+                return $http->asMultipart()->post('https://upload.imagekit.io/api/v1/files/upload', [
+                    'file' => $file,
+                    'fileName' => $name,
+                    'folder' => '/' . trim($folder, '/'),
+                    'useUniqueFileName' => 'true',
+                ]);
+            };
+
+            $sslVerifyConfig = config('services.imagekit.ssl_verify', env('IMAGEKIT_SSL_VERIFY', true));
+            $shouldVerify = filter_var($sslVerifyConfig, FILTER_VALIDATE_BOOLEAN);
+
+            try {
+                $response = $executeRequest($shouldVerify);
+            } catch (\Throwable $e) {
+                // Jika gagal karena SSL certificate error (cURL error 77, 60, atau cacert issue di Laragon Windows)
+                $errMsg = $e->getMessage();
+                if ($shouldVerify && (str_contains($errMsg, 'cURL error 77') || str_contains($errMsg, 'cURL error 60') || str_contains(strtolower($errMsg), 'certificate'))) {
+                    Log::warning('ImageKit SSL verify failed (' . $errMsg . '), retrying without SSL verification for local environment.');
+                    $response = $executeRequest(false);
+                } else {
+                    throw $e;
+                }
             }
 
             if ($response->successful()) {
