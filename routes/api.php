@@ -22,6 +22,15 @@ Route::prefix('v1/auth')->middleware('api.key')->group(function () {
     Route::get('/status-demo/{code}', [AuthController::class, 'statusDemo'])->name('api.v1.auth.status-demo');
 });
 
+Route::prefix('auth')->middleware('api.key')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/update-value', [AuthController::class, 'updateValue']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/status-demo/{code}', [AuthController::class, 'statusDemo']);
+});
+
 Route::prefix('v1/products')->middleware('api.key')->group(function () {
     Route::get('/', [ProductApiController::class, 'index'])->name('api.v1.products.index');
     Route::get('/user/{id_users}', [ProductApiController::class, 'index'])->name('api.v1.products.user');

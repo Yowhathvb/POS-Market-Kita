@@ -15,6 +15,11 @@ class EnsureApiKeyIsValid
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Preflight OPTIONS request must pass through immediately for CORS handling
+        if ($request->isMethod('OPTIONS')) {
+            return $next($request);
+        }
+
         $expectedApiKey = env('API_KEY', config('app.api_key'));
 
         // If no API_KEY configured in server env, fail safe

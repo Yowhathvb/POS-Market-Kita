@@ -18,15 +18,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.key' => \App\Http\Middleware\EnsureApiKeyIsValid::class,
         ]);
 
-        // Exempt API and v1 auth routes from CSRF verification
+        // Exempt API, v1, and auth routes from CSRF verification
         $middleware->validateCsrfTokens(except: [
             'v1/*',
             'v1/auth/*',
             'api/*',
+            'auth/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->is('v1/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*') || $request->is('v1/*') || $request->is('auth/*') || $request->expectsJson(),
         );
     })->create();

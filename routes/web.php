@@ -59,9 +59,9 @@ Route::get('/docs', [WebAuthController::class, 'docs'])->name('docs');
 
 /*
 |--------------------------------------------------------------------------
-| Direct API Endpoints: /v1/auth/...
+| Direct API Endpoints: /v1/auth/... and /auth/... alias
 |--------------------------------------------------------------------------
-| Matches user's exact specification (/v1/auth) protected by API Key.
+| Matches user's exact specification (/v1/auth and /auth) protected by API Key.
 */
 Route::prefix('v1/auth')->middleware('api.key')->group(function () {
     Route::post('/register', [ApiAuthController::class, 'register']);
@@ -70,6 +70,15 @@ Route::prefix('v1/auth')->middleware('api.key')->group(function () {
     Route::post('/update-value', [ApiAuthController::class, 'updateValue']);
     Route::post('/logout', [ApiAuthController::class, 'logout']);
     Route::get('/status-demo/{code}', [ApiAuthController::class, 'statusDemo']);
+});
+
+Route::prefix('auth')->middleware('api.key')->group(function () {
+    Route::post('/register', [ApiAuthController::class, 'register'])->name('api.auth.register');
+    Route::post('/login', [ApiAuthController::class, 'login'])->name('api.auth.login');
+    Route::get('/me', [ApiAuthController::class, 'me'])->name('api.auth.me');
+    Route::post('/update-value', [ApiAuthController::class, 'updateValue'])->name('api.auth.update-value');
+    Route::post('/logout', [ApiAuthController::class, 'logout'])->name('api.auth.logout');
+    Route::get('/status-demo/{code}', [ApiAuthController::class, 'statusDemo'])->name('api.auth.status-demo');
 });
 
 /*
