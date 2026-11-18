@@ -415,7 +415,7 @@
                         <tr><td class="py-2 px-3 text-white">id_users</td><td class="py-2 px-3 text-indigo-300">string</td><td class="py-2 px-3 text-slate-400">Opsional</td><td class="py-2 px-3 font-sans text-slate-300">ID pengguna penjual (misal: POS-X8K1N9Q4). Opsional jika key sudah unik</td></tr>
                         <tr><td class="py-2 px-3 text-white">store_website_id</td><td class="py-2 px-3 text-indigo-300">integer</td><td class="py-2 px-3 text-slate-400">Opsional</td><td class="py-2 px-3 font-sans text-slate-300">ID Toko/Website milik user (opsional relasi ke tbl_stores)</td></tr>
                         <tr><td class="py-2 px-3 text-emerald-300">file_url</td><td class="py-2 px-3 text-indigo-300">string / url</td><td class="py-2 px-3 text-slate-400">Opsional</td><td class="py-2 px-3 font-sans text-slate-300">URL download file digital (disimpan ke JSON value)</td></tr>
-                        <tr><td class="py-2 px-3 text-white">gambar</td><td class="py-2 px-3 text-indigo-300">string / url</td><td class="py-2 px-3 text-slate-400">Opsional</td><td class="py-2 px-3 font-sans text-slate-300">URL cover / thumbnail produk (disimpan ke JSON value)</td></tr>
+                        <tr><td class="py-2 px-3 text-white">gambar / gambar_file</td><td class="py-2 px-3 text-indigo-300">file | string / url</td><td class="py-2 px-3 text-slate-400">Opsional</td><td class="py-2 px-3 font-sans text-slate-300">File gambar (multipart/form-data) otomatis diunggah ke ImageKit.io CDN, ATAU URL gambar langsung</td></tr>
                         <tr><td class="py-2 px-3 text-white">deskripsi</td><td class="py-2 px-3 text-indigo-300">string</td><td class="py-2 px-3 text-slate-400">Opsional</td><td class="py-2 px-3 font-sans text-slate-300">Deskripsi lengkap produk digital</td></tr>
                         <tr><td class="py-2 px-3 text-white">is_active</td><td class="py-2 px-3 text-indigo-300">boolean</td><td class="py-2 px-3 text-slate-400">Opsional</td><td class="py-2 px-3 font-sans text-slate-300">Status produk aktif (default: true)</td></tr>
                         <tr><td class="py-2 px-3 text-cyan-300">value</td><td class="py-2 px-3 text-indigo-300">object / json</td><td class="py-2 px-3 text-slate-400">Opsional</td><td class="py-2 px-3 font-sans text-slate-300">Metadata JSON custom tambahan</td></tr>
@@ -542,6 +542,73 @@
                     <pre class="p-2.5 rounded bg-slate-900 code-font text-[11px] text-slate-300 overflow-x-auto">curl -X DELETE "{{ url('/v1/products/1') }}" \
   -H "X-API-KEY: {{ $apiKey }}" \
   -H "X-USER-KEY: &lt;key_dari_tabel_users&gt;"</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3.4 Upload File Gambar ke ImageKit.io CDN -->
+        <div class="space-y-4 pt-4 border-t border-slate-800">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-mono font-bold text-xs">POST</span>
+                    <span class="code-font text-purple-300">/v1/upload/image</span>
+                    <span class="text-xs font-normal text-slate-400">&mdash; Upload File Gambar ke ImageKit.io CDN</span>
+                </h3>
+                <span class="text-xs text-slate-400">Respon: 200 OK</span>
+            </div>
+
+            <div class="p-3.5 bg-purple-950/30 border border-purple-500/20 rounded-xl text-xs text-purple-200 leading-relaxed space-y-1">
+                <strong>Dukungan File Upload ke ImageKit.io:</strong> Anda dapat mengunggah file gambar (JPEG, PNG, WEBP, GIF, SVG maks 10MB) dalam bentuk <code class="code-font text-white">multipart/form-data</code>. Backend Laravel secara otomatis mengunggah file tersebut ke <strong>ImageKit.io CDN</strong> pada folder <code class="code-font text-white">/pos</code> dan mengembalikan URL CDN publik berkecepatan tinggi.
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <span class="text-xs font-semibold text-slate-300 block">Cara 1: Upload Gambar Standalone (cURL):</span>
+                    <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs code-font text-purple-300 overflow-x-auto">curl -X POST "{{ url('/v1/upload/image') }}" \
+  -H "X-API-KEY: {{ $apiKey }}" \
+  -F "image=@/path/ke/gambar-produk.jpg"</pre>
+
+                    <span class="text-xs font-semibold text-slate-300 block pt-2">Respon ImageKit CDN (200 OK):</span>
+                    <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs code-font text-cyan-300 overflow-x-auto">{
+  "status": "success",
+  "code": 200,
+  "message": "Gambar berhasil diupload ke ImageKit.",
+  "data": {
+    "url": "https://ik.imagekit.io/p0v1tjsucu/pos/prod_ab12cd34_1732000000.jpg",
+    "provider": "imagekit",
+    "file_id": "673b00000000000000000001",
+    "file_name": "prod_ab12cd34_1732000000.jpg",
+    "file_path": "/pos/prod_ab12cd34_1732000000.jpg",
+    "thumbnail_url": "https://ik.imagekit.io/p0v1tjsucu/tr:n-media_library_thumbnail/pos/...",
+    "mime_type": "image/jpeg",
+    "size": 154200
+  }
+}</pre>
+                </div>
+
+                <div class="space-y-2">
+                    <span class="text-xs font-semibold text-slate-300 block">Cara 2: Langsung Buat Produk + File Gambar (cURL):</span>
+                    <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs code-font text-emerald-300 overflow-x-auto">curl -X POST "{{ url('/v1/products') }}" \
+  -H "X-API-KEY: {{ $apiKey }}" \
+  -H "X-USER-KEY: &lt;key_dari_tabel_users&gt;" \
+  -F "name=E-Book Desain UI/UX Modern" \
+  -F "price=75000" \
+  -F "stock=100" \
+  -F "key=&lt;key_dari_tabel_users&gt;" \
+  -F "gambar_file=@/path/ke/cover.png" \
+  -F "deskripsi=Panduan Figma dan Design System"</pre>
+
+                    <span class="text-xs font-semibold text-slate-300 block pt-2">Contoh Frontend JavaScript (Fetch & FormData):</span>
+                    <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs code-font text-amber-300 overflow-x-auto">const formData = new FormData();
+formData.append('image', fileInput.files[0]);
+
+const res = await fetch('{{ url('/v1/upload/image') }}', {
+  method: 'POST',
+  headers: { 'X-API-KEY': '{{ $apiKey }}' },
+  body: formData
+});
+const result = await res.json();
+console.log('ImageKit URL:', result.data.url);</pre>
                 </div>
             </div>
         </div>

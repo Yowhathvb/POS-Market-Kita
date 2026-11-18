@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\ImageKitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -109,7 +112,7 @@ class ProductApiController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'name' => ['required', 'string', 'max:200'],
             'price' => ['required', 'numeric', 'min:0'],
             'stock' => ['nullable', 'integer', 'min:0'],
@@ -117,13 +120,24 @@ class ProductApiController extends Controller
             'user_key' => ['nullable', 'string'],
             'store_website_id' => ['nullable', 'exists:store_websites,id'],
             'file_url' => ['nullable', 'string', 'max:1000'],
-            'gambar' => ['nullable', 'string', 'max:1000'],
+            'gambar' => ['nullable'],
+            'gambar_file' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp,gif,svg', 'max:10240'],
+            'image' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp,gif,svg', 'max:10240'],
+            'file' => ['nullable'],
             'deskripsi' => ['nullable', 'string', 'max:5000'],
             'is_active' => ['nullable'],
             'id_users' => ['nullable', 'string'],
             'user_id' => ['nullable', 'integer'],
             'value' => ['nullable'],
-        ], [
+        ];
+
+        if ($request->hasFile('gambar')) {
+            $rules['gambar'] = ['file', 'image', 'mimes:jpeg,png,jpg,webp,gif,svg', 'max:10240'];
+        } elseif ($request->filled('gambar')) {
+            $rules['gambar'] = ['string', 'max:1000'];
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
             'name.required' => 'Nama produk wajib diisi.',
             'price.required' => 'Harga produk wajib diisi.',
             'price.numeric' => 'Harga produk harus berupa angka numerik.',
@@ -131,6 +145,9 @@ class ProductApiController extends Controller
             'stock.integer' => 'Stok produk harus berupa bilangan bulat.',
             'stock.min' => 'Stok produk tidak boleh bernilai negatif.',
             'store_website_id.exists' => 'ID Store Website yang dipilih tidak valid atau tidak ditemukan.',
+            'gambar.image' => 'File gambar yang diunggah harus berupa file gambar valid (jpeg, png, jpg, webp, gif, svg).',
+            'gambar_file.image' => 'File gambar yang diunggah harus berupa file gambar valid (jpeg, png, jpg, webp, gif, svg).',
+            'image.image' => 'File gambar yang diunggah harus berupa file gambar valid (jpeg, png, jpg, webp, gif, svg).',
         ]);
 
         if ($validator->fails()) {
@@ -233,14 +250,39 @@ class ProductApiController extends Controller
             }
         }
 
+        // Resolve gambar: Uploaded file ke ImageKit (fallback local storage) atau direct URL string
+        $uploadedFile = $request->file('gambar_file')
+            ?? $request->file('gambar')
+            ?? $request->file('image')
+            ?? ($request->file('file') instanceof UploadedFile ? $request->file('file') : null);
+
+        $gambarPath = null;
+        if ($uploadedFile instanceof UploadedFile) {
+            $imageKitUrl = ImageKitService::upload($uploadedFile);
+            if ($imageKitUrl) {
+                $gambarPath = $imageKitUrl;
+            } else {
+                $path = $uploadedFile->store('products', 'public');
+                $gambarPath = url(Storage::disk('public')->url($path));
+            }
+        } elseif (is_string($request->input('gambar'))) {
+            $gambarPath = $request->input('gambar');
+        } elseif (is_string($request->input('gambar_url'))) {
+            $gambarPath = $request->input('gambar_url');
+        }
+
         // Siapkan struktur value JSON (file_url, gambar, deskripsi, user_key)
         $customValue = is_array($request->input('value')) ? $request->input('value') : [];
         $valueData = array_merge([
             'file_url' => $request->input('file_url'),
-            'gambar' => $request->input('gambar'),
+            'gambar' => $gambarPath,
             'deskripsi' => $request->input('deskripsi', ''),
             'user_key' => $targetUser->key,
         ], $customValue);
+
+        if (!empty($gambarPath)) {
+            $valueData['gambar'] = $gambarPath;
+        }
 
         $uuid = (string) Str::uuid();
         $slug = Str::slug($request->input('name')) . '-' . strtolower(Str::random(6));
@@ -359,21 +401,35 @@ class ProductApiController extends Controller
         }
 
         // 2. Validasi field yang ingin diperbarui
-        $validator = Validator::make($request->all(), [
+        $rules = [
             'name' => ['sometimes', 'required', 'string', 'max:200'],
             'price' => ['sometimes', 'required', 'numeric', 'min:0'],
             'stock' => ['nullable', 'integer', 'min:0'],
             'file_url' => ['nullable', 'string', 'max:1000'],
-            'gambar' => ['nullable', 'string', 'max:1000'],
+            'gambar' => ['nullable'],
+            'gambar_file' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp,gif,svg', 'max:10240'],
+            'image' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp,gif,svg', 'max:10240'],
+            'file' => ['nullable'],
             'deskripsi' => ['nullable', 'string', 'max:5000'],
             'is_active' => ['nullable'],
             'value' => ['nullable'],
-        ], [
+        ];
+
+        if ($request->hasFile('gambar')) {
+            $rules['gambar'] = ['file', 'image', 'mimes:jpeg,png,jpg,webp,gif,svg', 'max:10240'];
+        } elseif ($request->filled('gambar')) {
+            $rules['gambar'] = ['string', 'max:1000'];
+        }
+
+        $validator = Validator::make($request->all(), $rules, [
             'name.required' => 'Nama produk tidak boleh kosong.',
             'price.numeric' => 'Harga produk harus berupa angka numerik.',
             'price.min' => 'Harga produk tidak boleh bernilai negatif.',
             'stock.integer' => 'Stok produk harus berupa bilangan bulat.',
             'stock.min' => 'Stok produk tidak boleh bernilai negatif.',
+            'gambar.image' => 'File gambar yang diunggah harus berupa file gambar valid.',
+            'gambar_file.image' => 'File gambar yang diunggah harus berupa file gambar valid.',
+            'image.image' => 'File gambar yang diunggah harus berupa file gambar valid.',
         ]);
 
         if ($validator->fails()) {
@@ -389,8 +445,28 @@ class ProductApiController extends Controller
         if ($request->has('value') && is_array($request->input('value'))) {
             $existingValue = array_merge($existingValue, $request->input('value'));
         }
+
+        // Upload file baru ke ImageKit (jika dikirim)
+        $uploadedFile = $request->file('gambar_file')
+            ?? $request->file('gambar')
+            ?? $request->file('image')
+            ?? ($request->file('file') instanceof UploadedFile ? $request->file('file') : null);
+
+        if ($uploadedFile instanceof UploadedFile) {
+            $imageKitUrl = ImageKitService::upload($uploadedFile);
+            if ($imageKitUrl) {
+                $existingValue['gambar'] = $imageKitUrl;
+            } else {
+                $path = $uploadedFile->store('products', 'public');
+                $existingValue['gambar'] = url(Storage::disk('public')->url($path));
+            }
+        } elseif ($request->has('gambar') && is_string($request->input('gambar'))) {
+            $existingValue['gambar'] = $request->input('gambar');
+        } elseif ($request->has('gambar_url') && is_string($request->input('gambar_url'))) {
+            $existingValue['gambar'] = $request->input('gambar_url');
+        }
+
         if ($request->has('file_url')) $existingValue['file_url'] = $request->input('file_url');
-        if ($request->has('gambar')) $existingValue['gambar'] = $request->input('gambar');
         if ($request->has('deskripsi')) $existingValue['deskripsi'] = $request->input('deskripsi');
         $existingValue['user_key'] = $owner->key;
 
@@ -557,6 +633,88 @@ class ProductApiController extends Controller
         }
 
         return [$owner, null];
+    }
+
+    /**
+     * POST /v1/products/upload-image
+     * POST /v1/upload/image
+     * Mengunggah file gambar langsung ke ImageKit.io via API multipart/form-data.
+     * Mengembalikan URL CDN publik ImageKit dan metadata gambar.
+     */
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'image' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp,gif,svg', 'max:10240'],
+            'file' => ['nullable'],
+            'gambar' => ['nullable'],
+            'gambar_file' => ['nullable', 'file', 'image', 'mimes:jpeg,png,jpg,webp,gif,svg', 'max:10240'],
+            'folder' => ['nullable', 'string', 'max:100'],
+            'file_name' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Validasi upload gambar gagal: ' . $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $file = $request->file('image')
+            ?? $request->file('file')
+            ?? $request->file('gambar')
+            ?? $request->file('gambar_file');
+
+        if (!$file instanceof UploadedFile) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 400,
+                'message' => 'File gambar tidak ditemukan. Kirimkan file gambar (multipart/form-data) dengan key "image", "file", atau "gambar".',
+                'error' => 'MISSING_IMAGE_FILE',
+            ], 400);
+        }
+
+        $folder = $request->input('folder');
+        $fileName = $request->input('file_name');
+
+        $result = ImageKitService::uploadDetailed($file, $fileName, $folder);
+
+        if ($result['success'] && !empty($result['url'])) {
+            return response()->json([
+                'status' => 'success',
+                'code' => 200,
+                'message' => 'Gambar berhasil diupload ke ImageKit.',
+                'data' => [
+                    'url' => $result['url'],
+                    'provider' => 'imagekit',
+                    'file_id' => $result['file_id'] ?? null,
+                    'file_name' => $result['file_name'] ?? $file->getClientOriginalName(),
+                    'file_path' => $result['file_path'] ?? null,
+                    'thumbnail_url' => $result['thumbnail_url'] ?? null,
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                ],
+            ], 200);
+        }
+
+        // Fallback: simpan ke penyimpanan lokal jika ImageKit gagal/private key tidak diset
+        $path = $file->store('products', 'public');
+        $localUrl = url(Storage::disk('public')->url($path));
+
+        return response()->json([
+            'status' => 'success',
+            'code' => 200,
+            'message' => 'Gambar berhasil diupload ke penyimpanan lokal (fallback ImageKit). ' . ($result['error'] ?? ''),
+            'data' => [
+                'url' => $localUrl,
+                'provider' => 'local_fallback',
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'warning' => $result['error'] ?? 'ImageKit tidak merespons.',
+            ],
+        ], 200);
     }
 
     /**

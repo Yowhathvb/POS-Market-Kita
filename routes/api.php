@@ -35,10 +35,18 @@ Route::prefix('v1/products')->middleware('api.key')->group(function () {
     Route::get('/', [ProductApiController::class, 'index'])->name('api.v1.products.index');
     Route::get('/user/{id_users}', [ProductApiController::class, 'index'])->name('api.v1.products.user');
     Route::post('/', [ProductApiController::class, 'store'])->name('api.v1.products.store');
+    Route::post('/upload-image', [ProductApiController::class, 'uploadImage'])->name('api.v1.products.upload-image');
     Route::get('/{id}', [ProductApiController::class, 'show'])->name('api.v1.products.show');
-    Route::put('/{id}', [ProductApiController::class, 'update'])->name('api.v1.products.update');
+    Route::match(['put', 'post'], '/{id}', [ProductApiController::class, 'update'])->name('api.v1.products.update');
     Route::delete('/{id}', [ProductApiController::class, 'destroy'])->name('api.v1.products.destroy');
 });
+
+Route::prefix('v1/upload')->middleware('api.key')->group(function () {
+    Route::post('/image', [ProductApiController::class, 'uploadImage'])->name('api.v1.upload.image');
+});
+
+Route::post('v1/upload-image', [ProductApiController::class, 'uploadImage'])->middleware('api.key');
+Route::post('upload-image', [ProductApiController::class, 'uploadImage'])->middleware('api.key');
 
 Route::prefix('v1/wallet')->middleware('api.key')->group(function () {
     Route::get('/', [WalletApiController::class, 'index'])->name('api.v1.wallet.index');

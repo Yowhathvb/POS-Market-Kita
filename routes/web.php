@@ -91,10 +91,18 @@ Route::prefix('v1/products')->middleware('api.key')->group(function () {
     Route::get('/', [ProductApiController::class, 'index']);
     Route::get('/user/{id_users}', [ProductApiController::class, 'index']);
     Route::post('/', [ProductApiController::class, 'store']);
+    Route::post('/upload-image', [ProductApiController::class, 'uploadImage']);
     Route::get('/{id}', [ProductApiController::class, 'show']);
-    Route::put('/{id}', [ProductApiController::class, 'update']);
+    Route::match(['put', 'post'], '/{id}', [ProductApiController::class, 'update']);
     Route::delete('/{id}', [ProductApiController::class, 'destroy']);
 });
+
+Route::prefix('v1/upload')->middleware('api.key')->group(function () {
+    Route::post('/image', [ProductApiController::class, 'uploadImage']);
+});
+
+Route::post('v1/upload-image', [ProductApiController::class, 'uploadImage'])->middleware('api.key');
+Route::post('upload-image', [ProductApiController::class, 'uploadImage'])->middleware('api.key');
 
 /*
 |--------------------------------------------------------------------------
