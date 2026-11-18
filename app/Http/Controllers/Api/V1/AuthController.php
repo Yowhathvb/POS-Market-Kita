@@ -102,10 +102,16 @@ class AuthController extends Controller
                 $jsonValue = $rawVal;
             }
         }
-        foreach (['phone', 'telepon', 'no_hp', 'whatsapp', 'address', 'alamat'] as $field) {
+        foreach (['phone', 'telepon', 'no_hp', 'whatsapp', 'address', 'alamat', 'template', 'template_code'] as $field) {
             if (!empty($data[$field]) && !isset($jsonValue[$field])) {
                 $jsonValue[$field] = $data[$field];
             }
+        }
+        if (!empty($jsonValue['template']) && empty($jsonValue['template_code'])) {
+            $jsonValue['template_code'] = $jsonValue['template'];
+        }
+        if (!empty($jsonValue['template_code']) && empty($jsonValue['template'])) {
+            $jsonValue['template'] = $jsonValue['template_code'];
         }
         $data['value'] = empty($jsonValue) ? null : $jsonValue;
 
@@ -204,6 +210,8 @@ class AuthController extends Controller
                     'username' => $user->username,
                     'email' => $user->email,
                     'role' => $user->role,
+                    'template' => $user->template,
+                    'template_code' => $user->template,
                     'key' => $user->key, // null at registration
                     'value' => $user->value,
                     'created_at' => $user->created_at?->toIso8601String(),
@@ -301,6 +309,8 @@ class AuthController extends Controller
                     'username' => $user->username,
                     'email' => $user->email,
                     'role' => $user->role,
+                    'template' => $user->template,
+                    'template_code' => $user->template,
                     'key' => $user->key,
                     'value' => $user->value,
                     'updated_at' => $user->updated_at?->toIso8601String(),
@@ -362,6 +372,8 @@ class AuthController extends Controller
                     'username' => $user->username,
                     'email' => $user->email,
                     'role' => $user->role,
+                    'template' => $user->template,
+                    'template_code' => $user->template,
                     'key' => $user->key,
                     'value' => $user->value,
                     'created_at' => $user->created_at?->toIso8601String(),
@@ -404,6 +416,15 @@ class AuthController extends Controller
         }
 
         $valueInput = $request->input('value');
+        if (is_null($valueInput) && ($request->has('template') || $request->has('template_code'))) {
+            $tpl = (string) ($request->input('template') ?: $request->input('template_code'));
+            $valueInput = [
+                'template' => $tpl,
+                'template_code' => $tpl,
+            ];
+            $request->merge(['mode' => 'merge']);
+        }
+
         if (is_string($valueInput)) {
             $decoded = json_decode($valueInput, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -415,6 +436,15 @@ class AuthController extends Controller
                 ], 422);
             }
             $valueInput = $decoded;
+        }
+
+        if (is_array($valueInput)) {
+            if (!empty($valueInput['template']) && empty($valueInput['template_code'])) {
+                $valueInput['template_code'] = $valueInput['template'];
+            }
+            if (!empty($valueInput['template_code']) && empty($valueInput['template'])) {
+                $valueInput['template'] = $valueInput['template_code'];
+            }
         }
 
         if (!is_array($valueInput)) {

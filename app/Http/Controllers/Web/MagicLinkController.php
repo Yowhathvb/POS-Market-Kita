@@ -42,7 +42,7 @@ class MagicLinkController extends Controller
         $product = $firstItem?->product;
         $productName = $product?->name ?? ($firstItem?->value['product_name'] ?? 'Produk Digital');
         $productImage = $product?->image ?? ($firstItem?->value['gambar'] ?? null);
-        $fileUrl = $firstItem?->value['file_url'] ?? $product?->value['file_url'] ?? null;
+        $fileUrl = $this->resolveFileUrl($firstItem, $product);
 
         // Mask email buyer untuk privasi (contoh: budi***@gmail.com)
         $maskedEmail = $this->maskEmail($transaction->buyer_email);
@@ -175,15 +175,54 @@ class MagicLinkController extends Controller
         }
 
         $item = $transaction->items->first();
-        $fileUrl = $item?->value['file_url'] ?? $item?->product?->value['file_url'] ?? null;
+        $fileUrl = $this->resolveFileUrl($item, $item?->product);
 
         if (empty($fileUrl)) {
             return redirect()->route('magic.link.show', [$id_users, $magic_token])
                 ->with('error', 'Tautan file produk belum diunggah oleh penjual. Silakan hubungi penjual.');
         }
 
+        // Simpan ke item transaksi jika sebelumnya kosong agar konsisten
+        if ($item && empty($item->value['file_url'])) {
+            $val = $item->value ?? [];
+            $val['file_url'] = $fileUrl;
+            $item->value = $val;
+            $item->save();
+        }
+
         // Teruskan (redirect) ke tautan produk digital asli
         return redirect()->away($fileUrl);
+    }
+
+    /**
+     * Resolusi URL file unduhan produk digital dari berbagai alternatif key dan storage.
+     */
+    protected function resolveFileUrl($item, $product): ?string
+    {
+        $candidates = [
+            $item?->value['file_url'] ?? null,
+            $item?->value['download_url'] ?? null,
+            $item?->value['file'] ?? null,
+            $item?->value['url'] ?? null,
+            $product?->value['file_url'] ?? null,
+            $product?->value['download_url'] ?? null,
+            $product?->value['file'] ?? null,
+            $product?->value['url'] ?? null,
+        ];
+
+        foreach ($candidates as $cand) {
+            if (!empty($cand) && is_string($cand)) {
+                $trimmed = trim($cand);
+                if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
+                    return $trimmed;
+                }
+                if (str_starts_with($trimmed, 'storage/') || str_starts_with($trimmed, '/storage/')) {
+                    return url($trimmed);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

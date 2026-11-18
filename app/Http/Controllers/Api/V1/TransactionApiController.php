@@ -309,7 +309,7 @@ class TransactionApiController extends Controller
                     ],
                 ]);
 
-                // 3. Request QRIS ke Midtrans Core API
+                // 3. Request QRIS & Payment Link ke Midtrans
                 $midtransItem = [
                     'id' => (string) $product->id,
                     'price' => (int) round($product->price),
@@ -325,6 +325,18 @@ class TransactionApiController extends Controller
                     [$midtransItem]
                 );
 
+                $paymentLinkData = MidtransService::createPaymentLink(
+                    $invoiceNumber,
+                    $product->price,
+                    $customerName,
+                    $customerEmail,
+                    [$midtransItem]
+                );
+
+                $paymentValue = array_merge($midtrans, [
+                    'payment_url' => $paymentLinkData['payment_url'] ?? null,
+                ]);
+
                 // 4. Catat Payment record
                 $payment = Payment::create([
                     'uuid' => (string) Str::uuid(),
@@ -334,7 +346,7 @@ class TransactionApiController extends Controller
                     'external_ref_id' => $midtrans['transaction_id'] ?? null,
                     'amount' => $product->price,
                     'status' => 'pending',
-                    'value' => $midtrans,
+                    'value' => $paymentValue,
                 ]);
 
                 return response()->json([
@@ -361,6 +373,7 @@ class TransactionApiController extends Controller
                         'payment' => [
                             'gateway' => 'midtrans',
                             'method' => 'qris',
+                            'payment_url' => $paymentLinkData['payment_url'] ?? null,
                             'qr_string' => $midtrans['qr_string'] ?? null,
                             'qr_code_url' => $midtrans['qr_code_url'] ?? null,
                             'expiry_time' => $midtrans['expiry_time'] ?? null,

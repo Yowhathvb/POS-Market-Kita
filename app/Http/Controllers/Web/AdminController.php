@@ -123,6 +123,7 @@ class AdminController extends Controller
             'role' => ['required', 'string', Rule::in(['user', 'admin'])],
             'nama_toko' => ['nullable', 'string', 'max:150'],
             'id_toko' => ['nullable', 'string', 'max:50'],
+            'template' => ['nullable', 'string', 'max:100'],
             'password' => ['nullable', 'string', 'min:6'],
         ]);
 
@@ -140,6 +141,10 @@ class AdminController extends Controller
         }
 
         $user->update($updateData);
+
+        if ($request->has('template')) {
+            $user->setTemplate((string) $request->input('template'));
+        }
 
         return redirect()->route('admin.index', ['tab' => 'users'])
             ->with('success', "Data pengguna '{$user->nama}' ({$user->id_users}) berhasil diperbarui.");

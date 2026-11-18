@@ -161,11 +161,13 @@ Route::get('/{id_users}/produk/{magic_token}/download', [MagicLinkController::cl
 */
 Route::prefix('v1/website')->group(function () {
     Route::get('/', [WebsiteApiController::class, 'index']);
+    Route::post('/template', [WebsiteApiController::class, 'updateTemplate']);
     Route::get('/{namatoko}', [WebsiteApiController::class, 'show']);
 });
 
 Route::prefix('website')->group(function () {
     Route::get('/', [WebsiteApiController::class, 'index']);
+    Route::post('/template', [WebsiteApiController::class, 'updateTemplate']);
     Route::get('/{namatoko}', [WebsiteApiController::class, 'show']);
 });
 

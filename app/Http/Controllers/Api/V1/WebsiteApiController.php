@@ -43,19 +43,23 @@ class WebsiteApiController extends Controller
             ->latest()
             ->paginate(20);
 
-        $storesData = collect($usersWithStore->items())->map(function (User $u) {
+        $baseDomain = rtrim(config('app.frontend_url') ?: config('app.url') ?: env('APP_URL') ?: 'https://pos.cloudsn.id', '/');
+
+        $storesData = collect($usersWithStore->items())->map(function (User $u) use ($baseDomain) {
             $storeWeb = $u->storeWebsites->first();
             return [
                 'id_users' => $u->id_users,
                 'id_toko' => $u->id_toko,
                 'nama_toko' => $u->nama_toko,
                 'slug' => Str::slug($u->nama_toko ?: $u->username),
+                'template' => $u->template,
+                'template_code' => $u->template,
                 'owner' => [
                     'nama' => $u->nama,
                     'username' => $u->username,
                 ],
                 'total_products' => $u->products_count,
-                'website_url' => url('/v1/website/' . Str::slug($u->nama_toko ?: $u->username)),
+                'website_url' => $baseDomain . '/v1/website/' . Str::slug($u->nama_toko ?: $u->username),
                 'custom_domain' => $storeWeb?->custom_domain,
             ];
         });
@@ -142,7 +146,9 @@ class WebsiteApiController extends Controller
         $products = $productQuery->get();
 
         // 3. Format data produk untuk kebutuhan Frontend Next.js
-        $formattedProducts = $products->map(function (Product $p) {
+        $baseDomain = rtrim(config('app.frontend_url') ?: config('app.url') ?: env('APP_URL') ?: 'https://pos.cloudsn.id', '/');
+
+        $formattedProducts = $products->map(function (Product $p) use ($baseDomain) {
             $val = $p->value ?? [];
             return [
                 'id' => $p->id,
@@ -157,7 +163,7 @@ class WebsiteApiController extends Controller
                 'image' => $val['gambar'] ?? null,
                 'deskripsi' => $val['deskripsi'] ?? '',
                 'has_digital_file' => !empty($val['file_url']),
-                'checkout_url' => url('/checkout/' . $p->slug),
+                'checkout_url' => $baseDomain . '/checkout/' . $p->slug,
                 'created_at' => $p->created_at?->toIso8601String(),
             ];
         });
@@ -170,6 +176,8 @@ class WebsiteApiController extends Controller
             'id_toko' => $targetUser->id_toko,
             'nama_toko' => $targetUser->nama_toko ?: $targetUser->nama,
             'slug' => Str::slug($targetUser->nama_toko ?: $targetUser->username),
+            'template' => $targetUser->template,
+            'template_code' => $targetUser->template,
             'owner' => [
                 'nama' => $targetUser->nama,
                 'username' => $targetUser->username,
@@ -194,6 +202,84 @@ class WebsiteApiController extends Controller
             'data' => [
                 'store' => $storeInfo,
                 'products' => $formattedProducts,
+            ],
+        ], 200);
+    }
+
+    /**
+     * POST /v1/website/template
+     * POST /website/template
+     * Input atau ubah kode template toko penjual secara manual via API.
+     * Payload:
+     * - template (atau template_code): string kode template (contoh: 'TPL-01', 'modern', 'minimalist')
+     * - id_users / username / key: identifier toko atau user
+     */
+    public function updateTemplate(Request $request): JsonResponse
+    {
+        $templateCode = $request->input('template')
+            ?? $request->input('template_code')
+            ?? $request->input('code');
+
+        if (empty($templateCode) || !is_string($templateCode)) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 422,
+                'message' => 'Parameter template atau template_code wajib diisi berupa kode string template (contoh: "TPL-01", "modern", "minimalist").',
+                'error' => 'MISSING_TEMPLATE_CODE',
+            ], 422);
+        }
+
+        // Cari user pemilik toko
+        $identifier = $request->header('X-USER-ID')
+            ?? $request->header('X-USER-KEY')
+            ?? $request->input('id_users')
+            ?? $request->input('username')
+            ?? $request->input('key')
+            ?? $request->input('id_toko')
+            ?? $request->input('nama_toko')
+            ?? (auth()->check() ? auth()->user()->id_users : null);
+
+        if (empty($identifier)) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 400,
+                'message' => 'Identifier user/toko wajib disertakan via parameter (id_users, username, key, id_toko) atau header X-USER-ID.',
+                'error' => 'MISSING_USER_IDENTIFIER',
+            ], 400);
+        }
+
+        $targetUser = $this->findUserByStore((string) $identifier);
+
+        if (!$targetUser) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 404,
+                'message' => "Pengguna atau toko dengan identifier '{$identifier}' tidak ditemukan.",
+                'error' => 'USER_NOT_FOUND',
+            ], 404);
+        }
+
+        $cleanCode = trim($templateCode);
+        $targetUser->setTemplate($cleanCode);
+
+        // Jika user memiliki StoreWebsite record, sinkronkan juga template_id nya
+        $storeWeb = StoreWebsite::where('user_id', $targetUser->id)->first();
+        if ($storeWeb) {
+            $storeWeb->template_id = $cleanCode;
+            $storeWeb->save();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'code' => 200,
+            'message' => "Template toko untuk '{$targetUser->nama_toko}' berhasil diperbarui menjadi '{$cleanCode}'.",
+            'data' => [
+                'id_users' => $targetUser->id_users,
+                'id_toko' => $targetUser->id_toko,
+                'nama_toko' => $targetUser->nama_toko ?: $targetUser->nama,
+                'template' => $cleanCode,
+                'template_code' => $cleanCode,
+                'value' => $targetUser->value,
             ],
         ], 200);
     }
@@ -245,6 +331,24 @@ class WebsiteApiController extends Controller
             ->first();
 
         if ($user) return $user;
+
+        // 4b. Cari dari JSON column 'value' (store_name / storeName) jika ada
+        $jsonUser = User::whereNotNull('value')
+            ->where(function ($q) use ($clean, $slugified) {
+                $q->whereRaw("LOWER(value->>'store_name') = ?", [$clean])
+                  ->orWhereRaw("LOWER(value->>'storeName') = ?", [$clean])
+                  ->orWhereRaw("LOWER(REPLACE(REPLACE(value->>'store_name', ' ', '-'), '_', '-')) = ?", [$slugified])
+                  ->orWhereRaw("LOWER(REPLACE(REPLACE(value->>'storeName', ' ', '-'), '_', '-')) = ?", [$slugified]);
+            })
+            ->first();
+
+        if ($jsonUser) return $jsonUser;
+
+        // 4c. Cari berdasarkan exact id_users atau key
+        $exactUser = User::where('id_users', $identifier)
+            ->orWhere('key', $identifier)
+            ->first();
+        if ($exactUser) return $exactUser;
 
         // 5. Fallback cari berdasarkan username
         return User::where('username', $clean)->first();

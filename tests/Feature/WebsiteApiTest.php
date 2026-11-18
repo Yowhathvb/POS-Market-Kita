@@ -236,4 +236,110 @@ class WebsiteApiTest extends TestCase
         $response->assertJsonPath('code', 404);
         $response->assertJsonPath('error', 'STORE_NOT_FOUND');
     }
+
+    public function test_store_returns_template_code_from_user_value(): void
+    {
+        $seller = User::factory()->create([
+            'id_users' => 'POS-TPL01',
+            'nama_toko' => 'Toko Template Keren',
+            'value' => [
+                'template' => 'TPL-MODERN-02',
+            ],
+        ]);
+
+        $response = $this->getJson('/v1/website/toko-template-keren');
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.store.template', 'TPL-MODERN-02');
+        $response->assertJsonPath('data.store.template_code', 'TPL-MODERN-02');
+    }
+
+    public function test_store_returns_default_template_when_not_set(): void
+    {
+        $seller = User::factory()->create([
+            'id_users' => 'POS-DEF01',
+            'nama_toko' => 'Toko Polosan',
+            'value' => null,
+        ]);
+
+        $response = $this->getJson('/v1/website/toko-polosan');
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.store.template', 'default');
+        $response->assertJsonPath('data.store.template_code', 'default');
+    }
+
+    public function test_can_update_template_code_manually_via_api(): void
+    {
+        $seller = User::factory()->create([
+            'id_users' => 'POS-UPTPL01',
+            'nama_toko' => 'Toko Update Template',
+            'value' => ['phone' => '08123456789'],
+        ]);
+
+        $response = $this->postJson('/v1/website/template', [
+            'id_users' => 'POS-UPTPL01',
+            'template' => 'MINIMALIST-DARK',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('status', 'success');
+        $response->assertJsonPath('data.template', 'MINIMALIST-DARK');
+        $response->assertJsonPath('data.template_code', 'MINIMALIST-DARK');
+
+        // Pastikan tersimpan di kolom value pengguna
+        $seller->refresh();
+        $this->assertEquals('MINIMALIST-DARK', $seller->value['template']);
+        $this->assertEquals('MINIMALIST-DARK', $seller->value['template_code']);
+        $this->assertEquals('08123456789', $seller->value['phone']); // Nilai lain tetap aman
+        $this->assertEquals('MINIMALIST-DARK', $seller->template);
+
+        // Pastikan juga muncul saat di-query via storefront GET /v1/website/{namatoko}
+        $getRes = $this->getJson('/v1/website/toko-update-template');
+        $getRes->assertStatus(200);
+        $getRes->assertJsonPath('data.store.template', 'MINIMALIST-DARK');
+    }
+
+    public function test_can_update_and_resolve_pos_tem_codes(): void
+    {
+        $seller = User::factory()->create([
+            'id_users' => 'POS-TEM01',
+            'nama_toko' => 'Toko Cyber Pro',
+        ]);
+
+        // 1. Update ke Template 1: POS-TEM-A7X9
+        $res1 = $this->postJson('/v1/website/template', [
+            'id_users' => 'POS-TEM01',
+            'template' => 'POS-TEM-A7X9',
+        ]);
+        $res1->assertStatus(200);
+        $res1->assertJsonPath('data.template', 'POS-TEM-A7X9');
+
+        $get1 = $this->getJson('/v1/website/toko-cyber-pro');
+        $get1->assertStatus(200);
+        $get1->assertJsonPath('data.store.template', 'POS-TEM-A7X9');
+
+        // 2. Switch ke Template 2: POS-TEM-B2Y4
+        $res2 = $this->postJson('/v1/website/template', [
+            'id_users' => 'POS-TEM01',
+            'template' => 'POS-TEM-B2Y4',
+        ]);
+        $res2->assertStatus(200);
+        $res2->assertJsonPath('data.template', 'POS-TEM-B2Y4');
+
+        $get2 = $this->getJson('/v1/website/toko-cyber-pro');
+        $get2->assertStatus(200);
+        $get2->assertJsonPath('data.store.template', 'POS-TEM-B2Y4');
+    }
+
+    public function test_update_template_requires_template_code(): void
+    {
+        $response = $this->postJson('/v1/website/template', [
+            'id_users' => 'POS-SOMEUSER',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('status', 'error');
+        $response->assertJsonPath('error', 'MISSING_TEMPLATE_CODE');
+    }
 }

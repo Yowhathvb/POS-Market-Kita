@@ -70,11 +70,13 @@ Route::post('api/v1/payments/midtrans-notification', [TransactionApiController::
 // Website Toko API (Storefront Catalog for Next.js domain/namatoko)
 Route::prefix('v1/website')->group(function () {
     Route::get('/', [WebsiteApiController::class, 'index'])->name('api.v1.website.index');
+    Route::post('/template', [WebsiteApiController::class, 'updateTemplate'])->name('api.v1.website.template');
     Route::get('/{namatoko}', [WebsiteApiController::class, 'show'])->name('api.v1.website.show');
 });
 
 Route::prefix('website')->group(function () {
     Route::get('/', [WebsiteApiController::class, 'index']);
+    Route::post('/template', [WebsiteApiController::class, 'updateTemplate']);
     Route::get('/{namatoko}', [WebsiteApiController::class, 'show']);
 });
 

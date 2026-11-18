@@ -76,13 +76,18 @@ class MidtransService
         }
 
         try {
-            $response = Http::withBasicAuth($serverKey, '')
+            $client = Http::withBasicAuth($serverKey, '')
                 ->withHeaders([
                     'Accept' => 'application/json',
                     'Content-Type' => 'application/json',
                 ])
-                ->timeout(10)
-                ->post("{$baseUrl}/v2/charge", $payload);
+                ->timeout(10);
+
+            if (app()->isLocal()) {
+                $client = $client->withoutVerifying();
+            }
+
+            $response = $client->post("{$baseUrl}/v2/charge", $payload);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -154,6 +159,92 @@ class MidtransService
                 'transaction_time' => now()->toDateTimeString(),
                 'transaction_status' => 'pending',
                 'qr_string' => $simulatedQrString,
+            ],
+        ];
+    }
+
+    /**
+     * Request pembuatan Midtrans Payment Link (v1/payment-links).
+     * Transaksi ini akan tercatat resmi di menu "Payment Links" pada Dashboard Midtrans.
+     *
+     * @param string $orderId Invoice Number (unik)
+     * @param float|int $amount Nominal pembayaran
+     * @param string $customerName Nama pembeli
+     * @param string $customerEmail Email pembeli
+     * @param array $itemDetails Rincian item produk
+     * @return array Data payment link, URL pembayaran, dan respon Midtrans
+     */
+    public static function createPaymentLink(
+        string $orderId,
+        float|int $amount,
+        string $customerName,
+        string $customerEmail,
+        array $itemDetails = []
+    ): array {
+        $serverKey = self::getServerKey();
+        $baseUrl = self::getBaseUrl();
+        $grossAmount = (int) round($amount);
+
+        $payload = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $grossAmount,
+            ],
+            'usage_limit' => 1,
+            'customer_required' => true,
+            'customer_details' => [
+                'first_name' => $customerName,
+                'email' => $customerEmail,
+            ],
+        ];
+
+        if (!empty($itemDetails)) {
+            $payload['item_details'] = $itemDetails;
+        }
+
+        try {
+            $client = Http::withBasicAuth($serverKey, '')
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ])
+                ->timeout(10);
+
+            if (app()->isLocal()) {
+                $client = $client->withoutVerifying();
+            }
+
+            $response = $client->post("{$baseUrl}/v1/payment-links", $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'is_simulated' => false,
+                    'order_id' => $data['order_id'] ?? $orderId,
+                    'payment_url' => $data['payment_url'] ?? null,
+                    'raw_response' => $data,
+                ];
+            }
+
+            Log::warning('Midtrans Payment Link creation failed: ' . $response->body());
+        } catch (\Throwable $e) {
+            Log::error('Midtrans Payment Link connection error: ' . $e->getMessage());
+        }
+
+        // Fallback simulated payment link
+        $isProduction = config('services.midtrans.is_production', false);
+        $domain = $isProduction ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
+        $simulatedUrl = "{$domain}/payment-links/" . time() . Str::random(6);
+
+        return [
+            'success' => true,
+            'is_simulated' => true,
+            'order_id' => $orderId,
+            'payment_url' => $simulatedUrl,
+            'raw_response' => [
+                'order_id' => $orderId,
+                'payment_url' => $simulatedUrl,
             ],
         ];
     }

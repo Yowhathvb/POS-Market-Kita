@@ -103,19 +103,33 @@ class CheckoutController extends Controller
                     ],
                 ]);
 
-                // Request tagihan QRIS ke Midtrans
+                $itemDetails = [[
+                    'id' => (string) $lockedProduct->id,
+                    'price' => (int) round($lockedProduct->price),
+                    'quantity' => 1,
+                    'name' => mb_substr($lockedProduct->name, 0, 50),
+                ]];
+
+                // Request tagihan QRIS & Payment Link ke Midtrans
                 $midtrans = MidtransService::chargeQris(
                     $invoiceNumber,
                     $lockedProduct->price,
                     $customerName,
                     $customerEmail,
-                    [[
-                        'id' => (string) $lockedProduct->id,
-                        'price' => (int) round($lockedProduct->price),
-                        'quantity' => 1,
-                        'name' => mb_substr($lockedProduct->name, 0, 50),
-                    ]]
+                    $itemDetails
                 );
+
+                $paymentLinkData = MidtransService::createPaymentLink(
+                    $invoiceNumber,
+                    $lockedProduct->price,
+                    $customerName,
+                    $customerEmail,
+                    $itemDetails
+                );
+
+                $paymentValue = array_merge($midtrans, [
+                    'payment_url' => $paymentLinkData['payment_url'] ?? null,
+                ]);
 
                 // Catat Payment
                 Payment::create([
@@ -126,7 +140,7 @@ class CheckoutController extends Controller
                     'external_ref_id' => $midtrans['transaction_id'] ?? null,
                     'amount' => $lockedProduct->price,
                     'status' => 'pending',
-                    'value' => $midtrans,
+                    'value' => $paymentValue,
                 ]);
 
                 return $trx;

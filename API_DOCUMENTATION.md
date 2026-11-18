@@ -1308,6 +1308,7 @@ curl -X POST "http://localhost:8000/v1/transactions/checkout" \
     "payment": {
       "gateway": "midtrans",
       "method": "qris",
+      "payment_url": "https://app.sandbox.midtrans.com/payment-links/162812345678",
       "qr_string": "00020101021226670016ID.CO.SHOPEE.WWW01189360091800000000000215...",
       "qr_code_url": "https://api.sandbox.midtrans.com/v2/qris/315a6b7d-8e9f-4a0b-bc1d-234567890abc/qr-code",
       "expiry_time": "2026-11-18 13:45:00",
@@ -1617,6 +1618,111 @@ Untuk mengaktifkan autentikasi Google menggunakan Firebase pada project Anda:
    FIREBASE_MESSAGING_SENDER_ID="1234567890"
    FIREBASE_APP_ID="1:1234567890:web:abcdef..."
    ```
+
+---
+
+## 7.5. REST API Website & Katalog Toko Publik (`/v1/website/{namatoko}`)
+
+Endpoint publik tanpa auth yang dirancang khusus untuk Dynamic Route di Next.js (`domain/[namatoko]`). Endpoint ini menerima nama toko/slug/identifier toko, mencari `id_users` pemilik toko di database, lalu mengembalikan data toko beserta seluruh katalog produk digital yang aktif.
+
+- **Method:** `GET`
+- **URL:** `https://pos.cloudsn.id/v1/website/{namatoko}`
+- **Alias:** `https://pos.cloudsn.id/website/{namatoko}` atau `https://pos.cloudsn.id/v1/website?nama_toko={namatoko}`
+- **Otentikasi:** Tidak memerlukan login/token user. Seluruh URL (checkout_url, website_url) diambil dinamis dari variabel `.env` (`APP_URL` / `FRONTEND_URL`).
+
+### Pencocokan Fleksibel `{namatoko}`:
+- **Slug Kebab-Case**: contoh `toko-digital-berkah`
+- **Nama Asli Toko**: contoh `Toko Digital Berkah`
+- **Nama Tanpa Spasi**: contoh `tokodigitalberkah`
+- **ID Toko**: contoh `POSM-X8K1N`
+- **ID Users**: contoh `POS-L3KD9F5B`
+- **Username**: contoh `budi`
+
+### Contoh Respon Sukses (`200 OK`):
+```json
+{
+  "status": "success",
+  "code": 200,
+  "message": "Data website toko 'Toko Digital Berkah' berhasil ditemukan.",
+  "data": {
+    "store": {
+      "id_users": "POS-L3KD9F5B",
+      "id_toko": "POSM-X8K1N",
+      "nama_toko": "Toko Digital Berkah",
+      "slug": "toko-digital-berkah",
+      "template": "TPL-01",
+      "template_code": "TPL-01",
+      "owner": {
+        "nama": "Budi Santoso",
+        "username": "budi"
+      },
+      "total_products": 2
+    },
+    "products": [
+      {
+        "id": 1,
+        "uuid": "9e2c4b5d-16a7-47b8-b11c-2f3b9c7e0001",
+        "name": "Source Code Aplikasi POS Pro",
+        "slug": "source-code-pos-pro",
+        "price": 150000,
+        "formatted_price": "Rp 150.000",
+        "stock": 25,
+        "is_unlimited_stock": false,
+        "product_type": "digital",
+        "image": "https://ik.imagekit.io/p0v1tjsucu/pos/prod_cover1.jpg",
+        "deskripsi": "Full source code Laravel 12 & Next.js Tailwind CSS",
+        "has_digital_file": true,
+        "checkout_url": "https://pos.cloudsn.id/checkout/source-code-pos-pro"
+      }
+    ]
+  }
+}
+```
+
+### 7.6. Update Kode Template Toko Secara Manual (`POST /v1/website/template`)
+
+Digunakan untuk mengatur kode template toko yang disimpan ke kolom JSON `users.value['template']` dan `users.value['template_code']`.
+
+- **Method:** `POST`
+- **URL:** `https://pos.cloudsn.id/v1/website/template`
+- **Alias:** `https://pos.cloudsn.id/website/template`
+
+#### Request Body:
+| Field | Tipe | Wajib | Keterangan |
+|---|---|---|---|
+| `template` / `template_code` | `string` | **Ya** | Kode template yang ingin digunakan, misalnya `"TPL-01"`, `"modern"`, `"minimalist"`, dll. |
+| `id_users` | `string` | Kondisional | ID user (misal `"POS-L3KD9F5B"`). Bisa juga dikirim via header `X-USER-ID` atau diganti `username` / `key` / `id_toko`. |
+
+#### Contoh Request:
+```bash
+curl -X POST "https://pos.cloudsn.id/v1/website/template" \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: pos_secret_token_1234567890" \
+  -d '{
+    "id_users": "POS-L3KD9F5B",
+    "template": "TPL-01"
+  }'
+```
+
+#### Contoh Respon Sukses (`200 OK`):
+```json
+{
+  "status": "success",
+  "code": 200,
+  "message": "Template toko untuk 'Toko Digital Berkah' berhasil diperbarui menjadi 'TPL-01'.",
+  "data": {
+    "id_users": "POS-L3KD9F5B",
+    "id_toko": "POSM-X8K1N",
+    "nama_toko": "Toko Digital Berkah",
+    "template": "TPL-01",
+    "template_code": "TPL-01",
+    "value": {
+      "template": "TPL-01",
+      "template_code": "TPL-01"
+    }
+  }
+}
+```
 
 ---
 

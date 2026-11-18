@@ -81,6 +81,36 @@ class User extends Authenticatable
     }
 
     /**
+     * Dapatkan kode template yang digunakan pengguna dari kolom JSON value.
+     */
+    public function getTemplateAttribute(): string
+    {
+        $val = $this->value;
+        if (is_array($val)) {
+            $template = $val['template'] ?? $val['template_code'] ?? null;
+            if (!empty($template) && is_string($template)) {
+                return trim($template);
+            }
+        }
+        return 'default';
+    }
+
+    /**
+     * Set dan simpan kode template pengguna ke dalam kolom JSON value.
+     */
+    public function setTemplate(string $code): self
+    {
+        $code = trim($code);
+        $val = is_array($this->value) ? $this->value : [];
+        $val['template'] = $code;
+        $val['template_code'] = $code;
+        $this->value = $val;
+        $this->save();
+
+        return $this;
+    }
+
+    /**
      * Dapatkan wallet user atau buat otomatis jika belum ada.
      */
     public function getOrCreateWallet(): Wallet

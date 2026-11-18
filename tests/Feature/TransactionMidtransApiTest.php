@@ -66,6 +66,7 @@ class TransactionMidtransApiTest extends TestCase
         $response->assertJsonPath('data.total_amount', 125000);
         $response->assertJsonPath('data.payment.gateway', 'midtrans');
         $response->assertJsonPath('data.payment.method', 'qris');
+        $this->assertNotEmpty($response->json('data.payment.payment_url'));
         $this->assertNotEmpty($response->json('data.payment.qr_string'));
         $this->assertNotEmpty($response->json('data.payment.qr_code_url'));
 
