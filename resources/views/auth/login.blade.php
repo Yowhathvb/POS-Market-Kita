@@ -87,12 +87,29 @@
                 </label>
             </div>
 
-            <!-- Submit Button -->
+            <!-- Submit Button with Loading Indicator -->
             <button 
                 type="submit" 
-                class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition active:scale-[0.98]"
+                id="loginBtn"
+                class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition active:scale-[0.98] flex items-center justify-center relative overflow-hidden group"
             >
-                Masuk ke Aplikasi
+                <!-- Normal State -->
+                <span id="loginBtnText" class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Masuk ke Aplikasi</span>
+                </span>
+                <!-- Loading State (hidden initially) -->
+                <span id="loginBtnLoading" class="hidden flex items-center space-x-2">
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Memproses Masuk...</span>
+                </span>
+                <!-- Bottom progress bar animation on loading -->
+                <div id="loginBtnBar" class="hidden absolute bottom-0 left-0 h-1 bg-white/50 w-full animate-pulse"></div>
             </button>
         </form>
 
@@ -129,5 +146,23 @@
             btn.classList.remove('text-brand-400');
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                if (!form.checkValidity()) return;
+                const btn = document.getElementById('loginBtn');
+                const text = document.getElementById('loginBtnText');
+                const loading = document.getElementById('loginBtnLoading');
+                const bar = document.getElementById('loginBtnBar');
+                
+                btn.classList.add('pointer-events-none', 'opacity-85', 'cursor-wait');
+                text.classList.add('hidden');
+                loading.classList.remove('hidden');
+                if (bar) bar.classList.remove('hidden');
+            });
+        }
+    });
 </script>
 @endsection

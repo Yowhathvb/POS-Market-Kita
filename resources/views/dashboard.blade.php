@@ -25,7 +25,13 @@
         </div>
 
         <div class="flex items-center space-x-3">
-            <a href="{{ route('docs') }}" class="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-600/20 transition flex items-center space-x-1.5">
+            <a href="{{ route('products.create') }}" class="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white shadow-lg shadow-brand-500/20 transition flex items-center space-x-1.5">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Input Produk (UC-6)</span>
+            </a>
+            <a href="{{ route('docs') }}" class="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 border border-slate-700 transition flex items-center space-x-1.5">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
@@ -192,11 +198,13 @@
                 </div>
                 <h3 class="text-sm font-bold text-white">Checkout & Pembayaran</h3>
                 <p class="text-xs text-slate-400 leading-relaxed">
-                    Sistem pemesanan pembeli, integrasi payment gateway, notifikasi email otomatis, serta akses Magic Link.
+                    Sistem pemesanan pembeli, integrasi payment gateway QRIS Midtrans, notifikasi email otomatis, dan riwayat pesanan.
                 </p>
-                <div class="pt-2 flex items-center space-x-2 text-[11px]">
-                    <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Payment (UC-10)</span>
-                    <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Magic Link (UC-15)</span>
+                <div class="pt-2 flex items-center justify-between text-[11px]">
+                    <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">QRIS Midtrans</span>
+                    <a href="{{ route('transactions.index') }}" class="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center space-x-1">
+                        <span>Lihat Transaksi &rarr;</span>
+                    </a>
                 </div>
             </div>
 
@@ -212,9 +220,11 @@
                 <p class="text-xs text-slate-400 leading-relaxed">
                     Monitoring saldo penjualan, mutasi pendapatan pesanan, dan pengajuan penarikan dana (Withdraw).
                 </p>
-                <div class="pt-2 flex items-center space-x-2 text-[11px]">
-                    <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Saldo (UC-17)</span>
-                    <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Withdraw (UC-18)</span>
+                <div class="pt-2 flex items-center justify-between text-[11px]">
+                    <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">Saldo & Mutasi</span>
+                    <a href="{{ route('wallet.index') }}" class="text-amber-400 hover:text-amber-300 font-semibold flex items-center space-x-1">
+                        <span>Buka Wallet &rarr;</span>
+                    </a>
                 </div>
             </div>
 

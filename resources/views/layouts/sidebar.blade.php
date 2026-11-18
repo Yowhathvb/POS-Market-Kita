@@ -50,27 +50,27 @@
             </a>
         </div>
 
-        <!-- Group 2: Produk & Katalog (UC 5, 6, 7) -->
+        <!-- Group 2: Data Produk (UC 5, 6, 7) -->
         <div>
-            <div class="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Katalog Produk</div>
+            <div class="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Menu Data Produk</div>
             <div class="space-y-1">
-                <a href="{{ route('dashboard') }}#produk" class="flex items-center px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/70 transition group">
-                    <svg class="w-4 h-4 mr-3 text-indigo-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <a href="{{ route('products.index') }}" class="flex items-center px-3 py-2 rounded-xl transition group {{ request()->routeIs('products.index') || request()->routeIs('products.data') ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/30' : 'text-slate-300 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-4 h-4 mr-3 {{ request()->routeIs('products.index') || request()->routeIs('products.data') ? 'text-white' : 'text-indigo-400 group-hover:text-white' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
-                    <span>Mengelola Produk</span>
-                    <span class="ml-auto text-[10px] text-slate-400 code-font">UC-5</span>
+                    <span>Data Produk</span>
+                    <span class="ml-auto text-[10px] {{ request()->routeIs('products.index') || request()->routeIs('products.data') ? 'text-indigo-200' : 'text-slate-400' }} code-font">UC-5</span>
                 </a>
                 <div class="pl-8 space-y-1">
-                    <a href="{{ route('dashboard') }}#input-produk" class="flex items-center py-1.5 px-2.5 rounded-lg text-slate-400 hover:text-indigo-300 text-[11px] transition">
-                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2"></span>
+                    <a href="{{ route('products.index') }}" class="flex items-center py-1.5 px-2.5 rounded-lg text-[11px] transition {{ request()->routeIs('products.index') ? 'bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30' : 'text-slate-400 hover:text-indigo-300' }}">
+                        <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('products.index') ? 'bg-indigo-400' : 'bg-indigo-500' }} mr-2"></span>
+                        <span>Mengelola Produk</span>
+                        <span class="ml-auto text-[9px] text-slate-400 code-font">UC-5</span>
+                    </a>
+                    <a href="{{ route('products.create') }}" class="flex items-center py-1.5 px-2.5 rounded-lg text-[11px] transition {{ request()->routeIs('products.create') ? 'bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30' : 'text-slate-400 hover:text-indigo-300' }}">
+                        <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('products.create') ? 'bg-indigo-400' : 'bg-indigo-500' }} mr-2"></span>
                         <span>Input Produk Baru</span>
                         <span class="ml-auto text-[9px] text-slate-400 code-font">UC-6</span>
-                    </a>
-                    <a href="{{ route('dashboard') }}#kelola-produk" class="flex items-center py-1.5 px-2.5 rounded-lg text-slate-400 hover:text-indigo-300 text-[11px] transition">
-                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2"></span>
-                        <span>Edit & Hapus Produk</span>
-                        <span class="ml-auto text-[9px] text-slate-400 code-font">UC-7</span>
                     </a>
                 </div>
             </div>
@@ -107,12 +107,12 @@
         <div>
             <div class="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Transaksi & Order</div>
             <div class="space-y-1">
-                <a href="{{ route('dashboard') }}#transaksi" class="flex items-center px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/70 transition group">
-                    <svg class="w-4 h-4 mr-3 text-cyan-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <a href="{{ route('transactions.index') }}" class="flex items-center px-3 py-2 rounded-xl transition group {{ request()->routeIs('transactions.*') ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/30' : 'text-slate-300 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-4 h-4 mr-3 {{ request()->routeIs('transactions.*') ? 'text-white' : 'text-cyan-400 group-hover:text-white' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     <span>Checkout & Transaksi</span>
-                    <span class="ml-auto text-[10px] text-slate-400 code-font">UC-14</span>
+                    <span class="ml-auto text-[10px] {{ request()->routeIs('transactions.*') ? 'text-cyan-200' : 'text-slate-400' }} code-font">UC-14</span>
                 </a>
                 <a href="{{ route('dashboard') }}#payment" class="flex items-center px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/70 transition group">
                     <svg class="w-4 h-4 mr-3 text-cyan-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -135,18 +135,18 @@
         <div>
             <div class="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Dompet & Saldo</div>
             <div class="space-y-1">
-                <a href="{{ route('dashboard') }}#wallet" class="flex items-center px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/70 transition group">
-                    <svg class="w-4 h-4 mr-3 text-amber-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <a href="{{ route('wallet.index') }}" class="flex items-center px-3 py-2 rounded-xl transition group {{ request()->routeIs('wallet.*') ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/30' : 'text-slate-300 hover:text-white hover:bg-slate-800/70' }}">
+                    <svg class="w-4 h-4 mr-3 {{ request()->routeIs('wallet.*') ? 'text-white' : 'text-emerald-400 group-hover:text-white' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     <span>Mengelola Saldo (Wallet)</span>
-                    <span class="ml-auto text-[10px] text-slate-400 code-font">UC-17</span>
+                    <span class="ml-auto text-[10px] {{ request()->routeIs('wallet.*') ? 'text-emerald-200' : 'text-slate-400' }} code-font">UC-17</span>
                 </a>
                 <div class="pl-8 space-y-1">
-                    <a href="{{ route('dashboard') }}#tarik-dana" class="flex items-center py-1.5 px-2.5 rounded-lg text-slate-400 hover:text-amber-300 text-[11px] transition">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2"></span>
-                        <span>Withdraw (Tarik Dana)</span>
-                        <span class="ml-auto text-[9px] text-slate-400 code-font">UC-18</span>
+                    <a href="{{ route('wallet.index') }}" class="flex items-center py-1.5 px-2.5 rounded-lg text-slate-400 hover:text-emerald-300 text-[11px] transition">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2"></span>
+                        <span>Saldo & Mutasi</span>
+                        <span class="ml-auto text-[9px] text-slate-400 code-font">UC-17</span>
                     </a>
                 </div>
             </div>

@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    'imagekit' => [
+        'url_endpoint' => env('IMAGEKIT_URL_ENDPOINT', 'https://ik.imagekit.io/p0v1tjsucu'),
+        'public_key' => env('IMAGEKIT_PUBLIC_KEY'),
+        'private_key' => env('IMAGEKIT_PRIVATE_KEY'),
+        'folder' => env('IMAGEKIT_FOLDER', 'pos'),
+    ],
+
+    'midtrans' => [
+        'server_key' => env('MIDTRANS_SERVER_KEY', 'SB-Mid-server-Eekp6sXd1Lw8_ELd~8msPxtk'),
+        'client_key' => env('MIDTRANS_CLIENT_KEY', 'market-pos'),
+        'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+        'is_sanitized' => env('MIDTRANS_IS_SANITIZED', true),
+        'is_3ds' => env('MIDTRANS_IS_3DS', true),
+    ],
+
 ];

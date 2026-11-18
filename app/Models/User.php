@@ -52,4 +52,46 @@ class User extends Authenticatable
             'value' => 'array',
         ];
     }
+
+    public function products(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function storeWebsites(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StoreWebsite::class);
+    }
+
+    public function wallet(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
+    public function withdrawals(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Withdrawal::class);
+    }
+
+    public function sellerTransactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Transaction::class, 'seller_user_id');
+    }
+
+    /**
+     * Dapatkan wallet user atau buat otomatis jika belum ada.
+     */
+    public function getOrCreateWallet(): Wallet
+    {
+        return $this->wallet()->firstOrCreate([], [
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'balance' => 0.00,
+            'pending_balance' => 0.00,
+            'currency' => 'IDR',
+            'value' => [
+                'bank_account' => null,
+                'mutations' => [],
+            ],
+        ]);
+    }
 }

@@ -94,6 +94,7 @@ class AuthWebTest extends TestCase
         $response->assertStatus(200);
 
         // Verify sidebar use-case menu items are present
+        $response->assertSee('Data Produk');
         $response->assertSee('Mengelola Produk');
         $response->assertSee('Setting Web Penjual');
         $response->assertSee('Checkout');
@@ -112,6 +113,8 @@ class AuthWebTest extends TestCase
         $response->assertSee('Dokumentasi Lengkap API POS Market Kita');
         $response->assertSee('/v1/auth/register');
         $response->assertSee('/v1/auth/login');
+        $response->assertSee('/v1/products');
+        $response->assertSee('Khusus Produk Digital');
         $response->assertSee('203 Non-Authoritative Information');
     }
 
