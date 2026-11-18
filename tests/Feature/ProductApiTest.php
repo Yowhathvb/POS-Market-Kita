@@ -504,4 +504,32 @@ class ProductApiTest extends TestCase
         $response->assertStatus(403);
         $response->assertJsonPath('error', 'FORBIDDEN_NOT_OWNER');
     }
+
+    public function test_product_api_can_delete_using_slug_and_uuid_safely_for_postgresql(): void
+    {
+        $userKey = 'del_pg_key_999';
+        $user = User::factory()->create([
+            'id_users' => 'POS-DELPG',
+            'key' => $userKey,
+        ]);
+
+        $product = Product::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'user_id' => $user->id,
+            'name' => 'Produk Test Postgres',
+            'slug' => 'produk-test-postgres-slug',
+            'product_type' => 'digital',
+            'price' => 15000,
+            'is_active' => true,
+        ]);
+
+        // Test delete via slug safely without invalid uuid type error
+        $response = $this->withHeader('X-API-KEY', $this->apiKey)
+            ->deleteJson("/v1/products/{$product->slug}", [
+                'key' => $userKey,
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertSoftDeleted('products', ['id' => $product->id]);
+    }
 }

@@ -50,10 +50,13 @@ class TransactionApiController extends Controller
         if ($request->filled('product_id')) {
             $productId = $request->input('product_id');
             $query->whereHas('items', function ($q) use ($productId) {
-                $q->where('product_id', $productId)
-                    ->orWhereHas('product', function ($p) use ($productId) {
-                        $p->where('uuid', $productId)->orWhere('slug', $productId);
+                if (is_numeric($productId)) {
+                    $q->where('product_id', (int) $productId);
+                } else {
+                    $q->whereHas('product', function ($p) use ($productId) {
+                        $p->whereIdentifier($productId);
                     });
+                }
             });
         }
 
@@ -126,9 +129,7 @@ class TransactionApiController extends Controller
      */
     public function show(Request $request, string $identifier): JsonResponse
     {
-        $transaction = Transaction::where('invoice_number', $identifier)
-            ->orWhere('uuid', $identifier)
-            ->when(is_numeric($identifier), fn($q) => $q->orWhere('id', (int) $identifier))
+        $transaction = Transaction::whereIdentifier($identifier)
             ->with(['items.product', 'latestPayment', 'seller', 'emailNotifications'])
             ->first();
 
@@ -239,9 +240,7 @@ class TransactionApiController extends Controller
             // untuk mengantisipasi klik checkout bersamaan antar pengguna yang berbeda
             return DB::transaction(function () use ($productId, $customerName, $customerEmail, $customerPhone, $notes, $request) {
                 // Cari produk dengan lock row eksklusif (Pessimistic Lock)
-                $product = Product::where('id', $productId)
-                    ->orWhere('uuid', $productId)
-                    ->orWhere('slug', $productId)
+                $product = Product::whereIdentifier($productId)
                     ->lockForUpdate()
                     ->first();
 
@@ -390,8 +389,7 @@ class TransactionApiController extends Controller
      */
     public function status(string $invoiceNumber): JsonResponse
     {
-        $transaction = Transaction::where('invoice_number', $invoiceNumber)
-            ->orWhere('uuid', $invoiceNumber)
+        $transaction = Transaction::whereIdentifier($invoiceNumber)
             ->with(['items.product', 'latestPayment'])
             ->first();
 
@@ -494,8 +492,7 @@ class TransactionApiController extends Controller
      */
     public function simulatePayment(string $invoiceNumber): JsonResponse
     {
-        $transaction = Transaction::where('invoice_number', $invoiceNumber)
-            ->orWhere('uuid', $invoiceNumber)
+        $transaction = Transaction::whereIdentifier($invoiceNumber)
             ->first();
 
         if (!$transaction) {

@@ -337,11 +337,8 @@ class ProductApiController extends Controller
      */
     public function show(Request $request, string $id): JsonResponse
     {
-        $query = Product::where(function ($q) use ($id) {
-            $q->where('id', $id)
-              ->orWhere('uuid', $id)
-              ->orWhere('slug', $id);
-        })->with(['user:id,id_users,nama,username', 'storeWebsite:id,store_name,slug']);
+        $query = Product::whereIdentifier($id)
+            ->with(['user:id,id_users,nama,username', 'storeWebsite:id,store_name,slug']);
 
         // Jika id_users atau header X-USER-ID dikirim, pastikan milik user tersebut
         $rawIdentifier = $request->input('id_users') ?? $request->header('X-USER-ID');
@@ -380,10 +377,7 @@ class ProductApiController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        $product = Product::where('id', $id)
-            ->orWhere('uuid', $id)
-            ->orWhere('slug', $id)
-            ->first();
+        $product = Product::whereIdentifier($id)->first();
 
         if (!$product) {
             return response()->json([
@@ -518,10 +512,7 @@ class ProductApiController extends Controller
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $product = Product::where('id', $id)
-            ->orWhere('uuid', $id)
-            ->orWhere('slug', $id)
-            ->first();
+        $product = Product::whereIdentifier($id)->first();
 
         if (!$product) {
             return response()->json([

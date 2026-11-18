@@ -79,4 +79,22 @@ class Product extends Model
     {
         return $this->value['file_url'] ?? null;
     }
+
+    /**
+     * Scope to find product safely in PostgreSQL by ID (numeric), UUID (valid uuid), or Slug (string).
+     * Prevents PostgreSQL SQLSTATE[22P02] invalid input syntax for type uuid.
+     */
+    public function scopeWhereIdentifier($query, string|int $identifier)
+    {
+        return $query->where(function ($q) use ($identifier) {
+            $val = trim((string) $identifier);
+            if (is_numeric($val)) {
+                $q->where('id', (int) $val);
+            } elseif (\Illuminate\Support\Str::isUuid($val)) {
+                $q->where('uuid', $val);
+            } else {
+                $q->where('slug', $val);
+            }
+        });
+    }
 }

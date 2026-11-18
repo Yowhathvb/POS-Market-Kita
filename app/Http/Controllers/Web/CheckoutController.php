@@ -147,8 +147,7 @@ class CheckoutController extends Controller
      */
     public function invoice(string $invoiceNumber): View
     {
-        $transaction = Transaction::where('invoice_number', $invoiceNumber)
-            ->orWhere('uuid', $invoiceNumber)
+        $transaction = Transaction::whereIdentifier($invoiceNumber)
             ->with(['items.product', 'latestPayment'])
             ->firstOrFail();
 

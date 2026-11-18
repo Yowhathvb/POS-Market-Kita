@@ -114,4 +114,22 @@ class Transaction extends Model
     {
         return $this->hasMany(EmailNotification::class);
     }
+
+    /**
+     * Scope to find transaction safely in PostgreSQL by invoice_number, UUID (valid uuid), or ID (numeric).
+     * Prevents PostgreSQL SQLSTATE[22P02] invalid input syntax for type uuid.
+     */
+    public function scopeWhereIdentifier($query, string|int $identifier)
+    {
+        return $query->where(function ($q) use ($identifier) {
+            $val = trim((string) $identifier);
+            if (is_numeric($val)) {
+                $q->where('id', (int) $val)->orWhere('invoice_number', $val);
+            } elseif (Str::isUuid($val)) {
+                $q->where('uuid', $val);
+            } else {
+                $q->where('invoice_number', $val);
+            }
+        });
+    }
 }
