@@ -13,9 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Register API Key verification middleware alias
+        // Register API Key verification & Admin middleware aliases
         $middleware->alias([
             'api.key' => \App\Http\Middleware\EnsureApiKeyIsValid::class,
+            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
 
         // Exempt API, v1, and auth routes from CSRF verification
@@ -26,10 +27,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth/*',
             'upload/*',
             'upload-image',
+            'website/*',
+            'website',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->is('v1/*') || $request->is('auth/*') || $request->is('upload/*') || $request->is('upload-image') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*') || $request->is('v1/*') || $request->is('auth/*') || $request->is('upload/*') || $request->is('upload-image') || $request->is('website/*') || $request->is('website') || $request->expectsJson(),
         );
     })->create();

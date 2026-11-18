@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
 use App\Http\Controllers\Api\V1\ProductApiController;
 use App\Http\Controllers\Api\V1\TransactionApiController;
 use App\Http\Controllers\Api\V1\WalletApiController;
+use App\Http\Controllers\Api\V1\WebsiteApiController;
+use App\Http\Controllers\Web\AdminController;
 use App\Http\Controllers\Web\AuthController as WebAuthController;
 use App\Http\Controllers\Web\CheckoutController;
 use App\Http\Controllers\Web\MagicLinkController;
@@ -47,6 +49,16 @@ Route::middleware('auth')->group(function () {
     // Transactions Management (UC-14)
     Route::get('/transactions', [WebTransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/{transaction:invoice_number}', [WebTransactionController::class, 'show'])->name('transactions.show');
+
+    // Admin Panel (Endpoint: /admin - Tidak ditampilkan di menu sidebar)
+    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/', [AdminController::class, 'index'])->name('index');
+        Route::put('/users/{user}', [AdminController::class, 'updateUser'])->name('users.update');
+        Route::post('/users/{user}/regenerate-key', [AdminController::class, 'regenerateKey'])->name('users.regenerate-key');
+        Route::delete('/users/{user}', [AdminController::class, 'destroyUser'])->name('users.destroy');
+        Route::post('/products/{product}/toggle', [AdminController::class, 'toggleProduct'])->name('products.toggle');
+        Route::delete('/products/{product}', [AdminController::class, 'destroyProduct'])->name('products.destroy');
+    });
 });
 
 // Public Checkout Routes (QRIS Midtrans)
@@ -140,5 +152,21 @@ Route::post('v1/payments/midtrans-notification', [TransactionApiController::clas
 Route::get('/{id_users}/produk/{magic_token}', [MagicLinkController::class, 'show'])->name('magic.link.show');
 Route::post('/{id_users}/produk/{magic_token}/verify-google', [MagicLinkController::class, 'verifyGoogle'])->name('magic.link.verify');
 Route::get('/{id_users}/produk/{magic_token}/download', [MagicLinkController::class, 'download'])->name('magic.link.download');
+
+/*
+|--------------------------------------------------------------------------
+| Website Toko API Endpoints: /v1/website & /website
+|--------------------------------------------------------------------------
+| Public Storefront for Next.js storefront pages: domain/[namatoko]
+*/
+Route::prefix('v1/website')->group(function () {
+    Route::get('/', [WebsiteApiController::class, 'index']);
+    Route::get('/{namatoko}', [WebsiteApiController::class, 'show']);
+});
+
+Route::prefix('website')->group(function () {
+    Route::get('/', [WebsiteApiController::class, 'index']);
+    Route::get('/{namatoko}', [WebsiteApiController::class, 'show']);
+});
 
 

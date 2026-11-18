@@ -28,27 +28,74 @@ class WalletApiController extends Controller
         }
 
         $wallet = $user->getOrCreateWallet();
+        $bankAccount = $wallet->value['bank_account'] ?? null;
+        $rawMutations = array_reverse($wallet->value['mutations'] ?? []);
+        $mutations = array_map(function ($m) {
+            $ts = $m['timestamp'] ?? $m['created_at'] ?? now()->toIso8601String();
+            $amt = (float) ($m['amount'] ?? 0);
+            $after = isset($m['balance_after']) ? (float) $m['balance_after'] : null;
+            $before = isset($m['balance_before']) ? (float) $m['balance_before'] : ($after !== null ? $after - $amt : null);
+            return [
+                'type' => $m['type'] ?? 'credit',
+                'amount' => $amt,
+                'balance_before' => $before,
+                'balance_after' => $after,
+                'description' => $m['description'] ?? '',
+                'timestamp' => $ts,
+                'created_at' => $ts,
+                'reference_id' => $m['reference_id'] ?? null,
+                'id' => $m['id'] ?? null,
+            ];
+        }, $rawMutations);
+
+        $recentWithdrawals = Withdrawal::where('user_id', $user->id)
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function ($w) {
+                return [
+                    'id' => $w->id,
+                    'uuid' => $w->uuid,
+                    'amount' => (float) $w->amount,
+                    'status' => $w->status,
+                    'bank_account' => $w->value['bank_name'] ?? null ? [
+                        'bank_name' => $w->value['bank_name'] ?? '',
+                        'account_number' => $w->value['account_number'] ?? '',
+                        'account_holder' => $w->value['account_holder'] ?? '',
+                    ] : null,
+                    'notes' => $w->value['note'] ?? $w->value['notes'] ?? null,
+                    'created_at' => $w->created_at?->toIso8601String(),
+                ];
+            });
 
         return response()->json([
             'status' => 'success',
             'code' => 200,
-            'message' => "Informasi wallet milik '{$user->nama}' berhasil diambil.",
+            'message' => 'Data wallet penjual berhasil diambil.',
             'data' => [
-                'wallet_id' => $wallet->id,
-                'uuid' => $wallet->uuid,
+                'wallet' => [
+                    'uuid' => $wallet->uuid,
+                    'currency' => $wallet->currency,
+                    'balance' => (float) $wallet->balance,
+                    'pending_balance' => (float) $wallet->pending_balance,
+                    'bank_account' => $bankAccount,
+                    'mutations' => $mutations,
+                ],
+                'recent_withdrawals' => $recentWithdrawals,
+                // Direct access compatibility
+                'balance' => (float) $wallet->balance,
+                'pending_balance' => (float) $wallet->pending_balance,
+                'currency' => $wallet->currency,
+                'formatted_balance' => 'Rp ' . number_format($wallet->balance, 0, ',', '.'),
+                'formatted_pending_balance' => 'Rp ' . number_format($wallet->pending_balance, 0, ',', '.'),
+                'bank_account' => $bankAccount,
+                'mutations' => $mutations,
                 'user' => [
                     'id' => $user->id,
                     'id_users' => $user->id_users,
                     'nama' => $user->nama,
                     'username' => $user->username,
                 ],
-                'balance' => (float) $wallet->balance,
-                'pending_balance' => (float) $wallet->pending_balance,
-                'currency' => $wallet->currency,
-                'formatted_balance' => 'Rp ' . number_format($wallet->balance, 0, ',', '.'),
-                'formatted_pending_balance' => 'Rp ' . number_format($wallet->pending_balance, 0, ',', '.'),
-                'bank_account' => $wallet->value['bank_account'] ?? null,
-                'mutations' => array_reverse($wallet->value['mutations'] ?? []),
                 'created_at' => $wallet->created_at?->toIso8601String(),
                 'updated_at' => $wallet->updated_at?->toIso8601String(),
             ],
@@ -100,10 +147,14 @@ class WalletApiController extends Controller
         return response()->json([
             'status' => 'success',
             'code' => 200,
-            'message' => 'Rekening bank pencairan dana berhasil diperbarui.',
+            'message' => 'Rekening bank penarikan saldo berhasil disimpan.',
             'data' => [
                 'wallet_id' => $wallet->id,
-                'bank_account' => $val['bank_account'],
+                'bank_account' => [
+                    'bank_name' => $val['bank_account']['bank_name'],
+                    'account_number' => $val['bank_account']['account_number'],
+                    'account_holder' => $val['bank_account']['account_holder'],
+                ],
             ],
         ], 200);
     }
@@ -171,6 +222,8 @@ class WalletApiController extends Controller
         $adminFee = 2500.00; // Biaya admin transfer antar bank
         $netAmount = max(0, $amount - $adminFee);
 
+        $balanceBefore = (float) $wallet->balance;
+
         // Potong saldo aktif, pindahkan ke pending balance
         $wallet->balance -= $amount;
         $wallet->pending_balance += $amount;
@@ -179,15 +232,18 @@ class WalletApiController extends Controller
         $val = $wallet->value ?? [];
         $mutations = $val['mutations'] ?? [];
         $withdrawalUuid = (string) Str::uuid();
+        $now = now()->toIso8601String();
 
         $mutations[] = [
             'id' => $withdrawalUuid,
             'type' => 'debit',
             'amount' => $amount,
+            'balance_before' => $balanceBefore,
+            'balance_after' => (float) $wallet->balance,
             'description' => "Penarikan dana (Withdrawal) ke {$bankName} {$accountNumber} a/n {$accountHolder}",
             'reference_id' => 'WD-' . strtoupper(substr($withdrawalUuid, 0, 8)),
-            'balance_after' => (float) $wallet->balance,
-            'created_at' => now()->toIso8601String(),
+            'timestamp' => $now,
+            'created_at' => $now,
         ];
         $val['mutations'] = $mutations;
         $wallet->value = $val;
@@ -206,7 +262,8 @@ class WalletApiController extends Controller
                 'bank_name' => $bankName,
                 'account_number' => $accountNumber,
                 'account_holder' => $accountHolder,
-                'note' => $request->input('note', 'Permintaan penarikan dana via API'),
+                'note' => $request->input('notes', $request->input('note', 'Permintaan penarikan dana via API')),
+                'notes' => $request->input('notes', $request->input('note', 'Permintaan penarikan dana via API')),
             ],
             'requested_at' => now(),
         ]);
@@ -223,6 +280,7 @@ class WalletApiController extends Controller
                 'admin_fee' => $adminFee,
                 'net_amount' => $netAmount,
                 'status' => $withdrawal->status,
+                'notes' => $request->input('notes', $request->input('note')),
                 'bank_destination' => [
                     'bank_name' => $bankName,
                     'account_number' => $accountNumber,

@@ -57,18 +57,22 @@ class Wallet extends Model
      */
     public function credit(float $amount, string $description, ?string $referenceId = null): void
     {
+        $balanceBefore = (float) $this->balance;
         $this->balance += $amount;
 
         $val = $this->value ?? [];
         $mutations = $val['mutations'] ?? [];
+        $now = now()->toIso8601String();
         $mutations[] = [
             'id' => (string) Str::uuid(),
             'type' => 'credit',
             'amount' => $amount,
+            'balance_before' => $balanceBefore,
+            'balance_after' => (float) $this->balance,
             'description' => $description,
             'reference_id' => $referenceId,
-            'balance_after' => (float) $this->balance,
-            'created_at' => now()->toIso8601String(),
+            'timestamp' => $now,
+            'created_at' => $now,
         ];
         $val['mutations'] = $mutations;
         $this->value = $val;
@@ -84,18 +88,22 @@ class Wallet extends Model
             return false;
         }
 
+        $balanceBefore = (float) $this->balance;
         $this->balance -= $amount;
 
         $val = $this->value ?? [];
         $mutations = $val['mutations'] ?? [];
+        $now = now()->toIso8601String();
         $mutations[] = [
             'id' => (string) Str::uuid(),
             'type' => 'debit',
             'amount' => $amount,
+            'balance_before' => $balanceBefore,
+            'balance_after' => (float) $this->balance,
             'description' => $description,
             'reference_id' => $referenceId,
-            'balance_after' => (float) $this->balance,
-            'created_at' => now()->toIso8601String(),
+            'timestamp' => $now,
+            'created_at' => $now,
         ];
         $val['mutations'] = $mutations;
         $this->value = $val;

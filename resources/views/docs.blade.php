@@ -614,6 +614,127 @@ console.log('ImageKit URL:', result.data.url);</pre>
         </div>
     </div>
 
+    <!-- Section: REST API Website Toko & Storefront (/v1/website/{namatoko}) -->
+    <div id="website-storefront" class="glass-card rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+            <div>
+                <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                    <span>REST API Website Toko & Storefront (/v1/website)</span>
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    Endpoint publik untuk halaman etalase toko Next.js: <code class="code-font text-cyan-300">domain/[namatoko]</code>. Langsung mencocokkan Nama Toko ke <code class="code-font text-emerald-300">id_users</code> dan menampilkan seluruh produk aktifnya.
+                </p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                    Next.js Route: [namatoko]
+                </span>
+                <span class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                    Public Endpoint
+                </span>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono font-bold text-xs">GET</span>
+                    <span class="code-font text-cyan-300">/v1/website/{namatoko}</span>
+                    <span class="text-xs font-normal text-slate-400">&mdash; Ambil Profil Toko & Seluruh Produk Penjual</span>
+                </h3>
+                <span class="text-xs text-slate-400">Respon: 200 OK / 404 Not Found</span>
+            </div>
+
+            <div class="p-3.5 bg-cyan-950/30 border border-cyan-500/20 rounded-xl text-xs text-cyan-200 leading-relaxed space-y-1">
+                <p><strong>Pencarian Fleksibel Otomatis:</strong> Parameter <code class="code-font text-white">{namatoko}</code> dapat berupa:</p>
+                <ul class="list-disc list-inside space-y-0.5 text-slate-300 pl-2">
+                    <li><strong>Nama Toko Asli</strong>: contoh <code class="code-font text-cyan-300">Toko Berkah Utama</code></li>
+                    <li><strong>Slug Kebab-Case</strong>: contoh <code class="code-font text-cyan-300">toko-berkah-utama</code></li>
+                    <li><strong>ID Toko</strong>: contoh <code class="code-font text-cyan-300">POSM-X8K1N</code></li>
+                    <li><strong>ID Users</strong>: contoh <code class="code-font text-cyan-300">POS-L3KD9F5B</code></li>
+                </ul>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <span class="text-xs font-semibold text-slate-300 block">Contoh Pemanggilan cURL:</span>
+                    <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs code-font text-cyan-300 overflow-x-auto">curl -X GET "{{ url('/v1/website/toko-digital-ahmad') }}" \
+  -H "Accept: application/json"</pre>
+
+                    <span class="text-xs font-semibold text-slate-300 block pt-2">Contoh Penggunaan di Next.js (App Router `app/[namatoko]/page.tsx`):</span>
+                    <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs code-font text-amber-300 overflow-x-auto">// Server Component
+export default async function StorePage({ params }: { params: { namatoko: string } }) {
+  const res = await fetch(`{{ url('/v1/website') }}/${params.namatoko}`, {
+    cache: 'no-store' // atau revalidate: 60
+  });
+
+  if (!res.ok) return &lt;div&gt;Toko tidak ditemukan&lt;/div&gt;;
+
+  const { data } = await res.json();
+  const { store, products } = data;
+
+  return (
+    &lt;div&gt;
+      &lt;h1&gt;{store.nama_toko}&lt;/h1&gt;
+      &lt;p&gt;Seller ID: {store.id_users}&lt;/p&gt;
+      &lt;div className="grid grid-cols-3 gap-4"&gt;
+        {products.map(p =&gt; (
+          &lt;div key={p.id}&gt;
+            &lt;img src={p.image} alt={p.name} /&gt;
+            &lt;h3&gt;{p.name}&lt;/h3&gt;
+            &lt;p&gt;{p.formatted_price}&lt;/p&gt;
+            &lt;a href={p.checkout_url}&gt;Beli Sekarang&lt;/a&gt;
+          &lt;/div&gt;
+        ))}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</pre>
+                </div>
+
+                <div class="space-y-2">
+                    <span class="text-xs font-semibold text-slate-300 block">Contoh Respon JSON (200 OK):</span>
+                    <pre class="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs code-font text-emerald-300 overflow-x-auto">{
+  "status": "success",
+  "code": 200,
+  "message": "Data website toko 'Toko Digital Ahmad' berhasil ditemukan.",
+  "data": {
+    "store": {
+      "id_users": "POS-AHMAD99",
+      "id_toko": "POSM-AHMAD01",
+      "nama_toko": "Toko Digital Ahmad",
+      "slug": "toko-digital-ahmad",
+      "owner": {
+        "nama": "Ahmad Penjual",
+        "username": "ahmadshop"
+      },
+      "total_products": 2
+    },
+    "products": [
+      {
+        "id": 1,
+        "uuid": "9e2c4b5d-16a7-47b8-b11c-2f3b9c7e0001",
+        "name": "Source Code Aplikasi Kasir POS Pro",
+        "slug": "source-code-pos-pro",
+        "price": 150000,
+        "formatted_price": "Rp 150.000",
+        "stock": 20,
+        "is_unlimited_stock": false,
+        "product_type": "digital",
+        "image": "https://ik.imagekit.io/p0v1tjsucu/pos/cover1.jpg",
+        "deskripsi": "Full source code Laravel & Next.js",
+        "has_digital_file": true,
+        "checkout_url": "{{ url('/checkout/source-code-pos-pro') }}"
+      }
+    ]
+  }
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Section 4: Cara Upload Data ke Kolom 'value' (JSON) -->
     <div id="upload-value" class="glass-card rounded-2xl p-6 sm:p-8 shadow-xl space-y-4">
         <h2 class="text-lg font-bold text-white flex items-center space-x-2">

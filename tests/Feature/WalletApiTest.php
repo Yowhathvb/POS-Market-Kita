@@ -49,6 +49,23 @@ class WalletApiTest extends TestCase
         $wallet = $user->getOrCreateWallet();
         $wallet->balance = 500000;
         $wallet->pending_balance = 25000;
+        $wallet->value = [
+            'bank_account' => [
+                'bank_name' => 'BCA',
+                'account_number' => '8830192831',
+                'account_holder' => 'Ahmad Dani',
+            ],
+            'mutations' => [
+                [
+                    'type' => 'credit',
+                    'amount' => 125000,
+                    'balance_before' => 375000,
+                    'balance_after' => 500000,
+                    'description' => 'Pembayaran lunas invoice INV-20261118-8F2A1B',
+                    'timestamp' => '2026-11-18T10:15:30.000000Z',
+                ]
+            ],
+        ];
         $wallet->save();
 
         $response = $this->withHeader('X-API-KEY', $this->apiKey)
@@ -57,6 +74,13 @@ class WalletApiTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonPath('status', 'success');
+        $response->assertJsonPath('data.wallet.balance', 500000);
+        $response->assertJsonPath('data.wallet.pending_balance', 25000);
+        $response->assertJsonPath('data.wallet.currency', 'IDR');
+        $response->assertJsonPath('data.wallet.bank_account.bank_name', 'BCA');
+        $response->assertJsonPath('data.wallet.mutations.0.type', 'credit');
+        $response->assertJsonPath('data.wallet.mutations.0.amount', 125000);
+        $response->assertJsonPath('data.wallet.mutations.0.timestamp', '2026-11-18T10:15:30.000000Z');
         $response->assertJsonPath('data.balance', 500000);
         $response->assertJsonPath('data.pending_balance', 25000);
         $response->assertJsonPath('data.currency', 'IDR');

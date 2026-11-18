@@ -163,23 +163,6 @@
             </div>
         </div>
 
-        <!-- Group 7: Administrasi (UC 16: Admin Only) -->
-        @if ($isAdmin)
-            <div>
-                <div class="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-400 flex items-center space-x-1">
-                    <span>Administrasi</span>
-                    <span class="px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[9px]">Admin</span>
-                </div>
-                <a href="{{ route('dashboard') }}#manage-users" class="flex items-center px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-rose-950/40 border border-transparent hover:border-rose-500/30 transition group">
-                    <svg class="w-4 h-4 mr-3 text-rose-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    <span>Manage User</span>
-                    <span class="ml-auto text-[10px] text-slate-400 code-font">UC-16</span>
-                </a>
-            </div>
-        @endif
-
     </nav>
 
     <!-- Sidebar Bottom Controls -->

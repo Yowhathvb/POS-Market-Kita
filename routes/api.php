@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ProductApiController;
 use App\Http\Controllers\Api\V1\TransactionApiController;
 use App\Http\Controllers\Api\V1\WalletApiController;
+use App\Http\Controllers\Api\V1\WebsiteApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -65,4 +66,15 @@ Route::prefix('v1/transactions')->middleware('api.key')->group(function () {
 // Midtrans Webhook Notification Callback (dapat diakses langsung oleh server Midtrans)
 Route::post('v1/payments/midtrans-notification', [TransactionApiController::class, 'notification'])->name('api.v1.payments.notification');
 Route::post('api/v1/payments/midtrans-notification', [TransactionApiController::class, 'notification']);
+
+// Website Toko API (Storefront Catalog for Next.js domain/namatoko)
+Route::prefix('v1/website')->group(function () {
+    Route::get('/', [WebsiteApiController::class, 'index'])->name('api.v1.website.index');
+    Route::get('/{namatoko}', [WebsiteApiController::class, 'show'])->name('api.v1.website.show');
+});
+
+Route::prefix('website')->group(function () {
+    Route::get('/', [WebsiteApiController::class, 'index']);
+    Route::get('/{namatoko}', [WebsiteApiController::class, 'show']);
+});
 
