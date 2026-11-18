@@ -19,23 +19,97 @@ class AuthController extends Controller
      */
     public function register(Request $request): JsonResponse
     {
-        // Accept value as either string or array
-        $rawVal = $request->input('value');
-        if (is_string($rawVal)) {
-            $decoded = json_decode($rawVal, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $request->merge(['value' => $decoded]);
+        $data = $request->all();
+
+        // 1. Normalisasi nama (name / full_name / fullName -> nama)
+        if (empty($data['nama'])) {
+            $data['nama'] = $data['name'] ?? $data['full_name'] ?? $data['fullName'] ?? null;
+        }
+
+        // 2. Normalisasi nama_toko (store_name / shop_name -> nama_toko)
+        if (empty($data['nama_toko'])) {
+            $data['nama_toko'] = $data['store_name'] 
+                ?? $data['storeName'] 
+                ?? $data['shop_name'] 
+                ?? $data['shopName'] 
+                ?? null;
+        }
+
+        // 3. Normalisasi id_toko
+        if (empty($data['id_toko'])) {
+            $data['id_toko'] = $data['store_id'] ?? $data['storeId'] ?? null;
+        }
+        if (isset($data['id_toko'])) {
+            $trimmedIdToko = trim((string) $data['id_toko']);
+            if ($trimmedIdToko === '' || strtolower($trimmedIdToko) === 'null') {
+                $data['id_toko'] = null;
             } else {
-                return response()->json([
-                    'status' => 'error',
-                    'code' => 422,
-                    'message' => 'The value field must be a valid JSON string or JSON object.',
-                    'errors' => [
-                        'value' => ['The value format is invalid JSON.']
-                    ]
-                ], 422);
+                $data['id_toko'] = $trimmedIdToko;
             }
         }
+
+        // 4. Normalisasi id_users
+        if (empty($data['id_users'])) {
+            $data['id_users'] = $data['user_id'] ?? $data['userId'] ?? null;
+        }
+        if (isset($data['id_users']) && (trim((string) $data['id_users']) === '' || strtolower(trim((string) $data['id_users'])) === 'null')) {
+            $data['id_users'] = null;
+        }
+
+        // 5. Auto-generate username jika form frontend tidak meminta username (dari email valid atau nama)
+        if (empty($data['username'])) {
+            $baseUsername = null;
+            if (!empty($data['email']) && filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                $baseUsername = \Illuminate\Support\Str::slug(explode('@', (string) $data['email'])[0], '_');
+            } elseif (!empty($data['nama'])) {
+                $baseUsername = \Illuminate\Support\Str::slug((string) $data['nama'], '_');
+            }
+
+            if (!empty($baseUsername) && strlen($baseUsername) >= 3) {
+                $candidate = substr($baseUsername, 0, 40);
+                $finalUsername = $candidate;
+                $counter = 1;
+                while (User::where('username', $finalUsername)->exists()) {
+                    $finalUsername = substr($candidate, 0, 35) . '_' . $counter++;
+                }
+                $data['username'] = $finalUsername;
+            }
+        }
+
+        // 6. Normalisasi password_confirmation
+        if (empty($data['password_confirmation'])) {
+            $data['password_confirmation'] = $data['confirm_password']
+                ?? $data['confirmPassword']
+                ?? $data['passwordConfirmation']
+                ?? $data['password_confirm']
+                ?? null;
+        }
+        // Jika frontend hanya mengirim password tanpa confirmation field, samakan otomatis
+        if (!empty($data['password']) && empty($data['password_confirmation'])) {
+            $data['password_confirmation'] = $data['password'];
+        }
+
+        // 7. Normalisasi kolom value JSON (phone, address dsb)
+        $jsonValue = [];
+        if (isset($data['value'])) {
+            $rawVal = $data['value'];
+            if (is_string($rawVal)) {
+                $decoded = json_decode($rawVal, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $jsonValue = $decoded;
+                }
+            } elseif (is_array($rawVal)) {
+                $jsonValue = $rawVal;
+            }
+        }
+        foreach (['phone', 'telepon', 'no_hp', 'whatsapp', 'address', 'alamat'] as $field) {
+            if (!empty($data[$field]) && !isset($jsonValue[$field])) {
+                $jsonValue[$field] = $data[$field];
+            }
+        }
+        $data['value'] = empty($jsonValue) ? null : $jsonValue;
+
+        $request->merge($data);
 
         $validator = Validator::make($request->all(), [
             'nama' => ['required', 'string', 'max:255'],
@@ -48,14 +122,14 @@ class AuthController extends Controller
             'role' => ['nullable', 'string', Rule::in(['user', 'admin', 'manager', 'cashier'])],
             'value' => ['nullable', 'array'],
         ], [
-            'nama.required' => 'Nama wajib diisi.',
+            'nama.required' => 'Nama lengkap wajib diisi.',
             'id_toko.regex' => 'Format id_toko wajib diawali dengan POSM- diikuti huruf kapital/angka.',
-            'id_toko.unique' => 'ID Toko sudah digunakan.',
+            'id_toko.unique' => 'ID Toko sudah digunakan oleh toko lain.',
             'username.required' => 'Username wajib diisi.',
             'username.unique' => 'Username sudah digunakan oleh pengguna lain.',
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
-            'email.unique' => 'Email sudah terdaftar.',
+            'email.unique' => 'Email ini sudah terdaftar. Silakan login atau gunakan email lain.',
             'password.required' => 'Password wajib diisi.',
             'password.min' => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
@@ -63,10 +137,18 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('Auth Register 422 Validation Error', [
+                'errors' => $validator->errors()->toArray(),
+                'received_fields' => array_keys($request->except(['password', 'password_confirmation'])),
+            ]);
+
+            $firstError = $validator->errors()->first();
+
             return response()->json([
                 'status' => 'error',
                 'code' => 422,
-                'message' => 'Validation error.',
+                'message' => 'Validasi gagal: ' . $firstError,
+                'error' => 'VALIDATION_ERROR',
                 'errors' => $validator->errors()
             ], 422);
         }
@@ -156,15 +238,17 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $loginIdentifier = $request->input('login')
+        $loginIdentifier = trim((string) ($request->input('login')
             ?? $request->input('username')
-            ?? $request->input('email');
+            ?? $request->input('email')
+            ?? $request->input('identifier')
+            ?? ''));
 
         if (empty($loginIdentifier)) {
             return response()->json([
                 'status' => 'error',
                 'code' => 422,
-                'message' => 'Please provide a username, email, or login parameter.',
+                'message' => 'Username atau email wajib diisi.',
                 'errors' => [
                     'login' => ['Field username atau email harus diisi.']
                 ]
@@ -172,16 +256,27 @@ class AuthController extends Controller
         }
 
         // Search user by username or email
-        $user = User::where('username', strtolower(trim($loginIdentifier)))
-            ->orWhere('email', strtolower(trim($loginIdentifier)))
+        $user = User::where('username', strtolower($loginIdentifier))
+            ->orWhere('email', strtolower($loginIdentifier))
             ->first();
 
-        if (!$user || !Hash::check($request->input('password'), $user->password)) {
+        if (!$user) {
             return response()->json([
                 'status' => 'error',
                 'code' => 401,
-                'message' => 'Unauthorized: Invalid username/email or password.',
-                'error' => 'INVALID_CREDENTIALS'
+                'message' => "Akun dengan email/username '{$loginIdentifier}' belum terdaftar. Silakan lakukan registrasi terlebih dahulu.",
+                'error' => 'INVALID_CREDENTIALS',
+                'detail' => 'USER_NOT_FOUND',
+            ], 401);
+        }
+
+        if (!Hash::check($request->input('password'), $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 401,
+                'message' => 'Password yang Anda masukkan salah. Silakan periksa kembali password Anda.',
+                'error' => 'INVALID_CREDENTIALS',
+                'detail' => 'INCORRECT_PASSWORD',
             ], 401);
         }
 

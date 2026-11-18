@@ -104,6 +104,41 @@ class AuthApiTest extends TestCase
         $response->assertJsonStructure(['errors' => ['nama', 'username', 'email', 'password']]);
     }
 
+    public function test_api_register_with_common_frontend_field_aliases_succeeds(): void
+    {
+        // Testing frontend payload using name instead of nama, no username, no confirmation, store_name, and direct phone
+        $payload = [
+            'name' => 'Frontend Modern User',
+            'email' => 'frontend.modern@example.com',
+            'password' => 'secret12345',
+            'store_name' => 'Karya Toko Modern',
+            'phone' => '081987654321',
+        ];
+
+        $response = $this->postJson('/auth/register', $payload, [
+            'X-API-KEY' => $this->apiKey,
+        ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonPath('data.user.nama', 'Frontend Modern User');
+        $response->assertJsonPath('data.user.nama_toko', 'Karya Toko Modern');
+        $response->assertJsonPath('data.user.email', 'frontend.modern@example.com');
+        $this->assertNotEmpty($response->json('data.user.username'));
+        $this->assertStringStartsWith('POSM-', $response->json('data.user.id_toko'));
+        $this->assertEquals('081987654321', $response->json('data.user.value.phone'));
+
+        // Can login with this newly registered user immediately!
+        $loginRes = $this->postJson('/auth/login', [
+            'email' => 'frontend.modern@example.com',
+            'password' => 'secret12345',
+        ], [
+            'X-API-KEY' => $this->apiKey,
+        ]);
+
+        $loginRes->assertStatus(200);
+        $loginRes->assertJsonPath('status', 'success');
+    }
+
     public function test_api_login_generates_random12_plus_username_and_hashes_to_key(): void
     {
         $user = User::factory()->create([
