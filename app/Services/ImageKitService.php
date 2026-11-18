@@ -27,14 +27,16 @@ class ImageKitService
      */
     public static function uploadDetailed(UploadedFile|string $file, ?string $fileName = null, ?string $folderName = null): array
     {
-        $privateKey = config('services.imagekit.private_key') ?? env('IMAGEKIT_PRIVATE_KEY');
+        $rawKey = config('services.imagekit.private_key') ?? env('IMAGEKIT_PRIVATE_KEY');
+        $privateKey = trim((string) $rawKey, "\"'\t\n\r ");
         $folder = $folderName ?? config('services.imagekit.folder', 'pos');
 
         if (empty($privateKey)) {
+            Log::warning('ImageKit Private Key is empty. Please check .env or config/services.php.');
             return [
                 'success' => false,
                 'url' => null,
-                'error' => 'ImageKit private key tidak dikonfigurasi di file .env (IMAGEKIT_PRIVATE_KEY).'
+                'error' => 'ImageKit private key tidak dikonfigurasi di file .env (IMAGEKIT_PRIVATE_KEY) atau config cache belum di-refresh (jalankan php artisan optimize:clear).'
             ];
         }
 

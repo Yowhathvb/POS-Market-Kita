@@ -698,23 +698,21 @@ class ProductApiController extends Controller
             ], 200);
         }
 
-        // Fallback: simpan ke penyimpanan lokal jika ImageKit gagal/private key tidak diset
-        $path = $file->store('products', 'public');
-        $localUrl = url(Storage::disk('public')->url($path));
+        $errorMessage = $result['error'] ?? 'Upload ke ImageKit gagal atau tidak merespons.';
+
+        \Illuminate\Support\Facades\Log::warning('ImageKit Upload Failed: ' . $errorMessage, [
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
+            'error_detail' => $result,
+        ]);
 
         return response()->json([
-            'status' => 'success',
-            'code' => 200,
-            'message' => 'Gambar berhasil diupload ke penyimpanan lokal (fallback ImageKit). ' . ($result['error'] ?? ''),
-            'data' => [
-                'url' => $localUrl,
-                'provider' => 'local_fallback',
-                'file_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getMimeType(),
-                'size' => $file->getSize(),
-                'warning' => $result['error'] ?? 'ImageKit tidak merespons.',
-            ],
-        ], 200);
+            'status' => 'error',
+            'code' => 502,
+            'message' => 'Gagal mengunggah file ke ImageKit: ' . $errorMessage,
+            'error' => 'IMAGEKIT_UPLOAD_FAILED',
+            'detail' => $errorMessage,
+        ], 502);
     }
 
     /**

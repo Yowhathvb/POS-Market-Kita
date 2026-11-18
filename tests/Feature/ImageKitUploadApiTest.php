@@ -178,4 +178,25 @@ class ImageKitUploadApiTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonPath('status', 'error');
     }
+
+    public function test_upload_image_returns_502_if_imagekit_fails(): void
+    {
+        Http::fake([
+            'https://upload.imagekit.io/*' => Http::response([
+                'message' => 'Authentication failed. Please check your private key.',
+            ], 401),
+        ]);
+
+        $file = UploadedFile::fake()->image('test_product.png', 400, 400);
+
+        $response = $this->withHeader('X-API-KEY', $this->apiKey)
+            ->post('/v1/upload/image', [
+                'image' => $file,
+            ]);
+
+        $response->assertStatus(502);
+        $response->assertJsonPath('status', 'error');
+        $response->assertJsonPath('code', 502);
+        $response->assertJsonPath('error', 'IMAGEKIT_UPLOAD_FAILED');
+    }
 }
