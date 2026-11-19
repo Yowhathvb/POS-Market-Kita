@@ -199,6 +199,34 @@ class MagicLinkController extends Controller
     }
 
     /**
+     * Pengalihan langsung (HTTP 302 Redirect) ke tautan produk digital asli penjual
+     * Endpoint: GET /{id_users}/produk/{magic_token}/redirect & /access
+     */
+    public function redirectAccess(string $id_users, string $magic_token): RedirectResponse
+    {
+        $seller = User::where('id_users', $id_users)->firstOrFail();
+        $transaction = Transaction::where('magic_token', $magic_token)
+            ->where('seller_user_id', $seller->id)
+            ->with(['items.product'])
+            ->firstOrFail();
+
+        if ($transaction->status !== 'paid') {
+            return redirect()->route('magic.link.show', [$id_users, $magic_token])
+                ->with('error', 'Transaksi ini belum berstatus lunas.');
+        }
+
+        $item = $transaction->items->first();
+        $fileUrl = $this->resolveFileUrl($item, $item?->product);
+
+        if (empty($fileUrl)) {
+            return redirect()->route('magic.link.show', [$id_users, $magic_token])
+                ->with('error', 'Tautan produk belum diunggah oleh penjual. Silakan hubungi penjual.');
+        }
+
+        return redirect()->away($fileUrl);
+    }
+
+    /**
      * Resolusi URL file unduhan produk digital dari berbagai alternatif key dan storage.
      */
     protected function resolveFileUrl($item, $product): ?string

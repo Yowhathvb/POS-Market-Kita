@@ -434,9 +434,19 @@ class TransactionApiController extends Controller
 
         $item = $transaction->items->first();
         $isPaid = $transaction->status === 'paid';
-        $downloadUrl = $isPaid 
-            ? $transaction->getMagicLinkUrl()
-            : null;
+        $magicLinkUrl = $isPaid ? $transaction->getMagicLinkUrl() : null;
+        $directFileUrl = null;
+
+        if ($isPaid && $item) {
+            $product = $item->product;
+            $directFileUrl = $item->value['file_url']
+                ?? ($product?->file_url
+                ?? ($product?->value['file_url']
+                ?? null));
+        }
+
+        // Tautan utama yang diarahkan ke produk digital pembeli (prioritaskan URL langsung asli penjual, fallback ke magic link)
+        $effectiveProductUrl = $directFileUrl ?: $magicLinkUrl;
 
         return response()->json([
             'status' => 'success',
@@ -453,7 +463,15 @@ class TransactionApiController extends Controller
                 'paid_at' => $transaction->paid_at?->toIso8601String(),
                 'product' => [
                     'name' => $item?->product?->name ?? ($item?->value['product_name'] ?? '-'),
-                    'download_url' => $downloadUrl,
+                    'download_url' => $effectiveProductUrl,
+                    'file_url' => $directFileUrl,
+                    'magic_link_url' => $magicLinkUrl,
+                ],
+                'delivery' => [
+                    'file_url' => $directFileUrl,
+                    'redirect_url' => $effectiveProductUrl,
+                    'magic_link_url' => $magicLinkUrl,
+                    'magic_token' => $transaction->magic_token,
                 ],
                 'payment' => [
                     'gateway' => 'midtrans',
