@@ -126,9 +126,17 @@ class Transaction extends Model
             if (is_numeric($val)) {
                 $q->where('id', (int) $val)->orWhere('invoice_number', $val);
             } elseif (Str::isUuid($val)) {
-                $q->where('uuid', $val);
+                $q->where('uuid', $val)
+                  ->orWhere('magic_token', $val)
+                  ->orWhereHas('payments', function ($sub) use ($val) {
+                      $sub->where('external_ref_id', $val);
+                  });
             } else {
-                $q->where('invoice_number', $val);
+                $q->where('invoice_number', $val)
+                  ->orWhere('magic_token', $val)
+                  ->orWhereHas('payments', function ($sub) use ($val) {
+                      $sub->where('external_ref_id', $val);
+                  });
             }
         });
     }

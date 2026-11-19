@@ -133,6 +133,7 @@ class TransactionMidtransApiTest extends TestCase
 
         $invoice = $checkoutResponse->json('data.invoice_number');
 
+        // Status check dengan API Key
         $statusResponse = $this->withHeader('X-API-KEY', $this->apiKey)
             ->getJson("/v1/transactions/{$invoice}/status");
 
@@ -141,6 +142,13 @@ class TransactionMidtransApiTest extends TestCase
         $statusResponse->assertJsonPath('data.invoice_number', $invoice);
         $statusResponse->assertJsonPath('data.status', 'unpaid');
         $statusResponse->assertJsonPath('data.is_paid', false);
+
+        // Status check publik TANPA API Key (harus tetap sukses untuk frontend polling)
+        $publicStatusResponse = $this->getJson("/v1/transactions/{$invoice}/status");
+        $publicStatusResponse->assertStatus(200);
+        $publicStatusResponse->assertJsonPath('status', 'success');
+        $publicStatusResponse->assertJsonPath('data.invoice_number', $invoice);
+        $publicStatusResponse->assertJsonPath('data.is_paid', false);
     }
 
     public function test_successful_midtrans_payment_decrements_stock_credits_wallet_and_sends_email(): void

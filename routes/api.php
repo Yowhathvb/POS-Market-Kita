@@ -58,10 +58,13 @@ Route::prefix('v1/wallet')->middleware('api.key')->group(function () {
 Route::prefix('v1/transactions')->middleware('api.key')->group(function () {
     Route::get('/', [TransactionApiController::class, 'index'])->name('api.v1.transactions.index');
     Route::post('/checkout', [TransactionApiController::class, 'checkout'])->name('api.v1.transactions.checkout');
-    Route::get('/{invoice}/status', [TransactionApiController::class, 'status'])->name('api.v1.transactions.status');
     Route::get('/{invoice}', [TransactionApiController::class, 'show'])->name('api.v1.transactions.show');
     Route::post('/{invoice}/simulate-payment', [TransactionApiController::class, 'simulatePayment'])->name('api.v1.transactions.simulate');
 });
+
+// Status transaksi publik (dapat dipolling oleh pembeli saat checkout dengan atau tanpa API Key)
+Route::get('v1/transactions/{invoice}/status', [TransactionApiController::class, 'status'])->name('api.v1.transactions.status');
+Route::get('transactions/{invoice}/status', [TransactionApiController::class, 'status']);
 
 // Midtrans Webhook Notification Callback (dapat diakses langsung oleh server Midtrans)
 Route::post('v1/payments/midtrans-notification', [TransactionApiController::class, 'notification'])->name('api.v1.payments.notification');

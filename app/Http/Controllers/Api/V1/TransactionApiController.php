@@ -415,6 +415,23 @@ class TransactionApiController extends Controller
             ], 404);
         }
 
+        // Jika transaksi masih belum berstatus paid, cek status langsung ke server Midtrans secara real-time
+        if ($transaction->status !== 'paid') {
+            $midtransStatus = MidtransService::getTransactionStatus($transaction->invoice_number);
+            if ($midtransStatus['success'] && !empty($midtransStatus['data'])) {
+                $statusData = $midtransStatus['data'];
+                $trxStatus = $statusData['transaction_status'] ?? null;
+                if (in_array($trxStatus, ['settlement', 'capture'])) {
+                    $this->markTransactionAsPaid($transaction, $statusData);
+                    $transaction->refresh();
+                } elseif (in_array($trxStatus, ['deny', 'cancel', 'expire'])) {
+                    $transaction->update(['status' => $trxStatus === 'expire' ? 'expired' : 'failed']);
+                    $transaction->latestPayment?->update(['status' => 'failed', 'value' => $statusData]);
+                    $transaction->refresh();
+                }
+            }
+        }
+
         $item = $transaction->items->first();
         $isPaid = $transaction->status === 'paid';
         $downloadUrl = $isPaid 
@@ -440,8 +457,9 @@ class TransactionApiController extends Controller
                 ],
                 'payment' => [
                     'gateway' => 'midtrans',
-                    'method' => 'qris',
-                    'status' => $transaction->latestPayment?->status ?? 'pending',
+                    'method' => $transaction->latestPayment?->payment_method ?? 'qris',
+                    'status' => $transaction->latestPayment?->status ?? ($isPaid ? 'settlement' : 'pending'),
+                    'payment_url' => $transaction->latestPayment?->value['payment_url'] ?? null,
                     'qr_code_url' => $transaction->latestPayment?->value['qr_code_url'] ?? null,
                 ],
             ],

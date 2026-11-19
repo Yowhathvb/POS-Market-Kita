@@ -135,10 +135,13 @@ Route::prefix('v1/wallet')->middleware('api.key')->group(function () {
 Route::prefix('v1/transactions')->middleware('api.key')->group(function () {
     Route::get('/', [TransactionApiController::class, 'index']);
     Route::post('/checkout', [TransactionApiController::class, 'checkout']);
-    Route::get('/{invoice}/status', [TransactionApiController::class, 'status']);
     Route::get('/{invoice}', [TransactionApiController::class, 'show']);
     Route::post('/{invoice}/simulate-payment', [TransactionApiController::class, 'simulatePayment']);
 });
+
+// Public Transaction Status Polling (bisa diakses pembeli dengan atau tanpa API Key)
+Route::get('v1/transactions/{invoice}/status', [TransactionApiController::class, 'status']);
+Route::get('transactions/{invoice}/status', [TransactionApiController::class, 'status']);
 
 // Midtrans Webhook Notification
 Route::post('v1/payments/midtrans-notification', [TransactionApiController::class, 'notification']);

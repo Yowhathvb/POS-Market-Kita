@@ -274,10 +274,15 @@ class MidtransService
         $baseUrl = self::getBaseUrl();
 
         try {
-            $response = Http::withBasicAuth($serverKey, '')
+            $client = Http::withBasicAuth($serverKey, '')
                 ->withHeaders(['Accept' => 'application/json'])
-                ->timeout(10)
-                ->get("{$baseUrl}/v2/{$orderId}/status");
+                ->timeout(10);
+
+            if (app()->isLocal()) {
+                $client = $client->withoutVerifying();
+            }
+
+            $response = $client->get("{$baseUrl}/v2/{$orderId}/status");
 
             if ($response->successful()) {
                 return [
