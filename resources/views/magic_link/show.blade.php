@@ -103,18 +103,36 @@
                     </p>
                 </div>
 
-                <div class="pt-3 space-y-2">
-                    <a href="{{ route('magic.link.download', [$seller->id_users, $transaction->magic_token]) }}" target="_blank" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-500/30 transition flex items-center justify-center space-x-2">
+                <div class="pt-3 space-y-3">
+                    <a href="{{ route('magic.link.download', [$seller->id_users, $transaction->magic_token]) }}" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-500/30 transition flex items-center justify-center space-x-2">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
-                        <span>Unduh / Akses File Produk Digital Sekarang</span>
+                        <span>Menuju Tautan Produk Digital &rarr;</span>
                     </a>
+                    <p class="text-xs text-emerald-300 font-medium">
+                        Mengalihkan otomatis ke link produk dalam <span id="countdownSec" class="font-bold underline text-white">3</span> detik...
+                    </p>
                     <p class="text-[11px] text-slate-400">
-                        File asset digital Anda siap diunduh. Anda dapat mengunduhnya kapan saja melalui tautan ini.
+                        Sistem mengalihkan (redirect) Anda langsung ke tautan produk digital asli (Google Drive, Cloud Storage, Notion, atau link akses penjual).
                     </p>
                 </div>
             </div>
+
+            <script>
+                // Auto redirect ke tautan produk digital setelah verifikasi
+                let secondsLeft = 3;
+                const countEl = document.getElementById('countdownSec');
+                const redirectTargetUrl = "{{ route('magic.link.download', [$seller->id_users, $transaction->magic_token]) }}";
+                const redirectTimer = setInterval(function() {
+                    secondsLeft--;
+                    if (countEl) countEl.textContent = secondsLeft;
+                    if (secondsLeft <= 0) {
+                        clearInterval(redirectTimer);
+                        window.location.href = redirectTargetUrl;
+                    }
+                }, 1000);
+            </script>
 
         @else
             <!-- State 3: Pembayaran LUNAS, Menunggu Verifikasi Google Pembeli -->
@@ -309,10 +327,15 @@
         .then(result => {
             setBtnLoading(false);
             if (result.ok && result.body.success) {
-                showAlert('success', 'Verifikasi Berhasil!', result.body.message);
+                showAlert('success', 'Verifikasi Berhasil!', 'Mengarahkan langsung ke tautan produk...');
                 setTimeout(() => {
-                    window.location.reload();
-                }, 1200);
+                    const targetLink = result.body.redirect_url || result.body.download_url;
+                    if (targetLink) {
+                        window.location.href = targetLink;
+                    } else {
+                        window.location.reload();
+                    }
+                }, 1000);
             } else {
                 showAlert('error', 'Akses Ditolak', result.body.message || 'Email tidak cocok dengan pembeli saat checkout.');
             }

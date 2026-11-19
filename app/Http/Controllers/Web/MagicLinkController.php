@@ -142,7 +142,11 @@ class MagicLinkController extends Controller
         return response()->json([
             'success' => true,
             'code' => 200,
-            'message' => "Verifikasi Akun Google berhasil! Email cocok ({$googleEmail}). File produk digital kini dapat diunduh.",
+            'message' => "Verifikasi Akun Google berhasil! Email cocok ({$googleEmail}). Mengalihkan ke tautan produk digital...",
+            'redirect_url' => route('magic.link.download', [
+                'id_users' => $id_users,
+                'magic_token' => $magic_token,
+            ]),
             'download_url' => route('magic.link.download', [
                 'id_users' => $id_users,
                 'magic_token' => $magic_token,

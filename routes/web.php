@@ -155,6 +155,8 @@ Route::post('v1/payments/midtrans-notification', [TransactionApiController::clas
 Route::get('/{id_users}/produk/{magic_token}', [MagicLinkController::class, 'show'])->name('magic.link.show');
 Route::post('/{id_users}/produk/{magic_token}/verify-google', [MagicLinkController::class, 'verifyGoogle'])->name('magic.link.verify');
 Route::get('/{id_users}/produk/{magic_token}/download', [MagicLinkController::class, 'download'])->name('magic.link.download');
+Route::get('/{id_users}/produk/{magic_token}/redirect', [MagicLinkController::class, 'download'])->name('magic.link.redirect');
+Route::get('/{id_users}/produk/{magic_token}/access', [MagicLinkController::class, 'download'])->name('magic.link.access');
 
 /*
 |--------------------------------------------------------------------------
