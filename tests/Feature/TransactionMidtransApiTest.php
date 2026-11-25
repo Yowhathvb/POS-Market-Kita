@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\CheckoutInvoiceMail;
 use App\Mail\DigitalProductDeliveryMail;
 use App\Models\Product;
 use App\Models\Transaction;
@@ -37,6 +38,8 @@ class TransactionMidtransApiTest extends TestCase
 
     public function test_checkout_creates_invoice_and_returns_qris_data(): void
     {
+        Mail::fake();
+
         $seller = User::factory()->create(['id_users' => 'POS-SELLER10']);
         $product = Product::create([
             'uuid' => (string) \Illuminate\Support\Str::uuid(),
@@ -83,6 +86,15 @@ class TransactionMidtransApiTest extends TestCase
             'qty' => 1,
             'unit_price' => '125000.00',
         ]);
+
+        // Verifikasi stok produk langsung berkurang 1 saat checkout (15 -> 14)
+        $product->refresh();
+        $this->assertEquals(14, $product->stock, 'Stok produk harus langsung berkurang 1 saat checkout.');
+
+        // Verifikasi email tagihan checkout dikirimkan otomatis ke pembeli
+        Mail::assertSent(CheckoutInvoiceMail::class, function ($mail) {
+            return $mail->hasTo('ahmad@example.com');
+        });
     }
 
     public function test_checkout_fails_if_product_out_of_stock(): void

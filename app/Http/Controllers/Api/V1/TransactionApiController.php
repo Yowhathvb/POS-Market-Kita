@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CheckoutInvoiceMail;
 use App\Mail\DigitalProductDeliveryMail;
 use App\Models\EmailNotification;
 use App\Models\Payment;
@@ -262,14 +263,17 @@ class TransactionApiController extends Controller
                     ], 400);
                 }
 
-                // Cek stok produk secara atomik jika terbatas
-                if (!is_null($product->stock) && $product->stock <= 0) {
-                    return response()->json([
-                        'status' => 'error',
-                        'code' => 400,
-                        'message' => 'Persediaan stok produk digital ini telah habis.',
-                        'error' => 'PRODUCT_OUT_OF_STOCK',
-                    ], 400);
+                // Cek stok produk secara atomik jika terbatas dan kurangi stok produk
+                if (!is_null($product->stock)) {
+                    if ($product->stock <= 0) {
+                        return response()->json([
+                            'status' => 'error',
+                            'code' => 400,
+                            'message' => 'Persediaan stok produk digital ini telah habis.',
+                            'error' => 'PRODUCT_OUT_OF_STOCK',
+                        ], 400);
+                    }
+                    $product->decrement('stock', 1);
                 }
 
                 // N+1 Sequential Auto-Increment Invoice Numbering
@@ -290,6 +294,7 @@ class TransactionApiController extends Controller
                         'notes' => $notes,
                         'ip_address' => $request->ip(),
                         'user_agent' => $request->userAgent(),
+                        'stock_reduced' => true,
                     ],
                 ]);
 
@@ -348,6 +353,29 @@ class TransactionApiController extends Controller
                     'status' => 'pending',
                     'value' => $paymentValue,
                 ]);
+
+                // 5. Kirim email tagihan/invoice otomatis ke pembeli
+                try {
+                    Mail::to($customerEmail)->send(new CheckoutInvoiceMail($transaction));
+
+                    EmailNotification::create([
+                        'uuid' => (string) Str::uuid(),
+                        'user_id' => $transaction->seller_user_id,
+                        'transaction_id' => $transaction->id,
+                        'recipient_email' => $customerEmail,
+                        'subject' => "Tagihan Pembayaran: {$product->name} (Invoice #{$transaction->invoice_number})",
+                        'notif_type' => 'invoice',
+                        'status' => 'sent',
+                        'value' => [
+                            'invoice_number' => $transaction->invoice_number,
+                            'total_amount' => (float) $transaction->total_amount,
+                            'type' => 'checkout_invoice',
+                        ],
+                        'sent_at' => now(),
+                    ]);
+                } catch (\Throwable $mailEx) {
+                    Log::warning("Gagal mengirim email tagihan checkout ke {$customerEmail}: " . $mailEx->getMessage());
+                }
 
                 return response()->json([
                     'status' => 'success',
@@ -425,7 +453,17 @@ class TransactionApiController extends Controller
                     $this->markTransactionAsPaid($transaction, $statusData);
                     $transaction->refresh();
                 } elseif (in_array($trxStatus, ['deny', 'cancel', 'expire'])) {
-                    $transaction->update(['status' => $trxStatus === 'expire' ? 'expired' : 'failed']);
+                    if ($transaction->value['stock_reduced'] ?? false) {
+                        foreach ($transaction->items as $item) {
+                            $lockedProduct = Product::where('id', $item->product_id)->first();
+                            if ($lockedProduct && !is_null($lockedProduct->stock)) {
+                                $lockedProduct->increment('stock', $item->qty ?: 1);
+                            }
+                        }
+                    }
+                    $val = $transaction->value ?? [];
+                    $val['stock_reduced'] = false;
+                    $transaction->update(['status' => $trxStatus === 'expire' ? 'expired' : 'failed', 'value' => $val]);
                     $transaction->latestPayment?->update(['status' => 'failed', 'value' => $statusData]);
                     $transaction->refresh();
                 }
@@ -525,7 +563,17 @@ class TransactionApiController extends Controller
         if (in_array($transactionStatus, ['settlement', 'capture'])) {
             $this->markTransactionAsPaid($transaction, $payload);
         } elseif (in_array($transactionStatus, ['deny', 'cancel', 'expire'])) {
-            $transaction->update(['status' => 'expired']);
+            if ($transaction->value['stock_reduced'] ?? false) {
+                foreach ($transaction->items as $item) {
+                    $lockedProduct = Product::where('id', $item->product_id)->first();
+                    if ($lockedProduct && !is_null($lockedProduct->stock)) {
+                        $lockedProduct->increment('stock', $item->qty ?: 1);
+                    }
+                }
+            }
+            $val = $transaction->value ?? [];
+            $val['stock_reduced'] = false;
+            $transaction->update(['status' => 'expired', 'value' => $val]);
             $transaction->latestPayment?->update(['status' => 'failed', 'value' => $payload]);
         }
 
@@ -629,12 +677,19 @@ class TransactionApiController extends Controller
                 ]);
             }
 
-            // 3. Kurangi stok produk secara atomik dengan lockForUpdate
-            foreach ($lockedTrx->items as $item) {
-                $lockedProduct = Product::where('id', $item->product_id)->lockForUpdate()->first();
-                if ($lockedProduct && !is_null($lockedProduct->stock) && $lockedProduct->stock > 0) {
-                    $lockedProduct->decrement('stock', $item->qty ?: 1);
+            // 3. Kurangi stok produk secara atomik dengan lockForUpdate (jika belum dikurangi saat checkout)
+            $stockAlreadyReduced = (bool) ($lockedTrx->value['stock_reduced'] ?? false);
+            if (!$stockAlreadyReduced) {
+                foreach ($lockedTrx->items as $item) {
+                    $lockedProduct = Product::where('id', $item->product_id)->lockForUpdate()->first();
+                    if ($lockedProduct && !is_null($lockedProduct->stock) && $lockedProduct->stock > 0) {
+                        $lockedProduct->decrement('stock', $item->qty ?: 1);
+                    }
                 }
+                $val = $lockedTrx->value ?? [];
+                $val['stock_reduced'] = true;
+                $lockedTrx->value = $val;
+                $lockedTrx->save();
             }
 
             // 4. Tambahkan saldo ke wallet seller secara aman (Pessimistic Lock)

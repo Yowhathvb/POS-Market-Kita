@@ -35,8 +35,8 @@ class MagicLinkController extends Controller
         // Cek apakah transaksi sudah lunas
         $isPaid = $transaction->status === 'paid';
 
-        // Cek status verifikasi Google pada session
-        $isVerified = session("magic_auth_{$transaction->id}") === true;
+        // Cek status verifikasi Google pada session atau persistent long-lived cookie
+        $isVerified = $this->isTransactionVerified($transaction);
 
         $firstItem = $transaction->items->first();
         $product = $firstItem?->product;
@@ -139,6 +139,15 @@ class MagicLinkController extends Controller
         session(["magic_auth_{$transaction->id}" => true]);
         session(["magic_auth_email_{$transaction->id}" => $googleEmail]);
 
+        // Buat persistent long-lived cookie (5 tahun = 2.628.000 menit) agar pembeli tidak perlu login lagi
+        $trxToken = $this->getMagicAuthToken($transaction->id, $googleEmail);
+        $globalSig = hash_hmac('sha256', "buyer_google_{$googleEmail}", config('app.key'));
+        $cookieDuration = 525600 * 5; // 5 tahun
+
+        $cookieTrx = cookie("magic_auth_token_{$transaction->id}", $trxToken, $cookieDuration, '/', null, false, false);
+        $cookieEmail = cookie('buyer_google_email', $googleEmail, $cookieDuration, '/', null, false, false);
+        $cookieSig = cookie('buyer_google_sig', $globalSig, $cookieDuration, '/', null, false, false);
+
         return response()->json([
             'success' => true,
             'code' => 200,
@@ -151,7 +160,10 @@ class MagicLinkController extends Controller
                 'id_users' => $id_users,
                 'magic_token' => $magic_token,
             ]),
-        ], 200);
+        ], 200)
+        ->withCookie($cookieTrx)
+        ->withCookie($cookieEmail)
+        ->withCookie($cookieSig);
     }
 
     /**
@@ -172,8 +184,8 @@ class MagicLinkController extends Controller
                 ->with('error', 'Transaksi ini belum berstatus lunas.');
         }
 
-        // Pastikan sudah terverifikasi lewat Google di session
-        if (!session("magic_auth_{$transaction->id}")) {
+        // Pastikan sudah terverifikasi lewat Google di session atau long-lived cookie
+        if (!$this->isTransactionVerified($transaction)) {
             return redirect()->route('magic.link.show', [$id_users, $magic_token])
                 ->with('error', 'Silakan login dengan akun Google terdaftar terlebih dahulu untuk mengunduh produk ini.');
         }
@@ -277,5 +289,49 @@ class MagicLinkController extends Controller
         }
 
         return $maskedName . '@' . $domain;
+    }
+
+    /**
+     * Cek apakah pembeli sudah terverifikasi Google untuk transaksi ini
+     * baik melalui session aktif maupun persistent long-lived cookie.
+     */
+    protected function isTransactionVerified(Transaction $transaction): bool
+    {
+        // 1. Cek session saat ini
+        if (session("magic_auth_{$transaction->id}") === true) {
+            return true;
+        }
+
+        $buyerEmail = strtolower(trim($transaction->buyer_email));
+
+        // 2. Cek persistent cookie spesifik transaksi
+        $cookieTrxToken = request()->cookie("magic_auth_token_{$transaction->id}");
+        if ($cookieTrxToken && hash_equals($this->getMagicAuthToken($transaction->id, $buyerEmail), $cookieTrxToken)) {
+            session(["magic_auth_{$transaction->id}" => true]);
+            session(["magic_auth_email_{$transaction->id}" => $buyerEmail]);
+            return true;
+        }
+
+        // 3. Cek persistent cookie global Google buyer di browser ini
+        $globalEmail = request()->cookie('buyer_google_email');
+        $globalSig = request()->cookie('buyer_google_sig');
+        if ($globalEmail && $globalSig) {
+            $expectedSig = hash_hmac('sha256', "buyer_google_{$globalEmail}", config('app.key'));
+            if (hash_equals($expectedSig, $globalSig) && strtolower(trim($globalEmail)) === $buyerEmail) {
+                session(["magic_auth_{$transaction->id}" => true]);
+                session(["magic_auth_email_{$transaction->id}" => $buyerEmail]);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Generate secure HMAC token untuk persistent cookie verifikasi magic link
+     */
+    protected function getMagicAuthToken(int $transactionId, string $email): string
+    {
+        return hash_hmac('sha256', "magic_auth_{$transactionId}_{$email}", config('app.key'));
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CheckoutInvoiceMail;
+use App\Models\EmailNotification;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Transaction;
@@ -12,6 +14,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -63,9 +67,12 @@ class CheckoutController extends Controller
                     throw new \RuntimeException('Produk ini sedang tidak tersedia untuk dibeli.');
                 }
 
-                // Cek stok secara atomik
-                if (!is_null($lockedProduct->stock) && $lockedProduct->stock <= 0) {
-                    throw new \RuntimeException('Maaf, persediaan stok produk digital ini telah habis.');
+                // Cek stok secara atomik dan kurangi stok produk
+                if (!is_null($lockedProduct->stock)) {
+                    if ($lockedProduct->stock <= 0) {
+                        throw new \RuntimeException('Maaf, persediaan stok produk digital ini telah habis.');
+                    }
+                    $lockedProduct->decrement('stock', 1);
                 }
 
                 // N+1 Sequential Auto-Increment Invoice Numbering
@@ -85,6 +92,7 @@ class CheckoutController extends Controller
                         'customer_phone' => $validated['customer_phone'] ?? null,
                         'notes' => $validated['notes'] ?? null,
                         'ip_address' => $request->ip(),
+                        'stock_reduced' => true,
                     ],
                 ]);
 
@@ -145,6 +153,29 @@ class CheckoutController extends Controller
 
                 return $trx;
             });
+
+            // Kirim email tagihan/invoice otomatis ke pembeli
+            try {
+                Mail::to($customerEmail)->send(new CheckoutInvoiceMail($transaction));
+
+                EmailNotification::create([
+                    'uuid' => (string) Str::uuid(),
+                    'user_id' => $transaction->seller_user_id,
+                    'transaction_id' => $transaction->id,
+                    'recipient_email' => $customerEmail,
+                    'subject' => "Tagihan Pembayaran: " . ($product->name ?? 'Produk Digital') . " (Invoice #{$transaction->invoice_number})",
+                    'notif_type' => 'invoice',
+                    'status' => 'sent',
+                    'value' => [
+                        'invoice_number' => $transaction->invoice_number,
+                        'total_amount' => (float) $transaction->total_amount,
+                        'type' => 'checkout_invoice',
+                    ],
+                    'sent_at' => now(),
+                ]);
+            } catch (\Throwable $mailEx) {
+                Log::warning("Gagal mengirim email invoice checkout ke {$customerEmail}: " . $mailEx->getMessage());
+            }
 
             return redirect()->route('checkout.invoice', $transaction->invoice_number);
         } catch (\RuntimeException $e) {

@@ -86,6 +86,26 @@ class MagicLinkGoogleTest extends TestCase
         // Masked email should show bu...e@gmail.com
         $response->assertSee('bu');
         $response->assertSee('@gmail.com');
+
+        // Pastikan TIDAK ada tombol atau box uji coba di link produk
+        $response->assertDontSee('Pengujian Simulasi Cepat');
+        $response->assertDontSee('devSimulationBox');
+        $response->assertDontSee('Tes Verifikasi');
+    }
+
+    public function test_persistent_cookie_authenticates_buyer_without_session(): void
+    {
+        $downloadUrl = "/{$this->seller->id_users}/produk/{$this->transaction->magic_token}/download";
+        $globalEmail = 'buyer.google@gmail.com';
+        $globalSig = hash_hmac('sha256', "buyer_google_{$globalEmail}", config('app.key'));
+
+        // Akses TANPA session, HANYA dengan persistent cookie
+        $cookieResponse = $this->withCookies([
+            'buyer_google_email' => $globalEmail,
+            'buyer_google_sig' => $globalSig,
+        ])->get($downloadUrl);
+
+        $cookieResponse->assertRedirect('https://ik.imagekit.io/p0v1tjsucu/pos/ebook-saas.pdf');
     }
 
     public function test_magic_link_verification_succeeds_when_google_email_matches(): void

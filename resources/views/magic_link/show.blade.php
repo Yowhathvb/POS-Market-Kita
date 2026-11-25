@@ -176,30 +176,6 @@
                         </svg>
                         <span id="googleLoginText">Masuk dengan Akun Google</span>
                     </button>
-
-                    <!-- Development / Manual Email Test Helper (If Firebase is waiting for user config) -->
-                    <div id="devSimulationBox" class="mt-3 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold text-slate-300">Pengujian Simulasi Cepat (Testing Mode):</span>
-                            <span class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-brand-500/20 text-brand-300 code-font">Dev Test</span>
-                        </div>
-                        <div class="flex gap-2">
-                            <input 
-                                type="email" 
-                                id="testEmailInput" 
-                                placeholder="Masukkan email untuk verifikasi..." 
-                                value="{{ $transaction->buyer_email }}"
-                                class="flex-1 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                            >
-                            <button 
-                                type="button" 
-                                onclick="verifyEmailDirectly(document.getElementById('testEmailInput').value)" 
-                                class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition"
-                            >
-                                Tes Verifikasi
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         @endif
@@ -298,15 +274,6 @@
                     showAlert('error', 'Gagal Login Google', error.message || 'Terjadi kesalahan saat otentikasi Google.');
                 }
             });
-    }
-
-    function verifyEmailDirectly(email) {
-        if (!email) {
-            alert('Silakan masukkan email.');
-            return;
-        }
-        setBtnLoading(true, 'Memverifikasi...');
-        verifyEmailWithBackend(email, 'test_google_sub_123', null);
     }
 
     function verifyEmailWithBackend(email, uid, idToken) {
